@@ -14,7 +14,7 @@ def serveRecognizeAudioFile(filename):
 
 	response = recognizeAudioFile(filename)
 	print(filename + ':')
-	# print(response.__dict__)
+	print(response.__dict__)
 	return flask.jsonify(response.__dict__)
 
 if __name__ == '__main__':
