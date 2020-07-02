@@ -116,4 +116,4 @@ dist
 .pnp.*
 
 # USER DEFINED
-user_audio
+user_audio*
