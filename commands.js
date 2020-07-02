@@ -1,10 +1,16 @@
 const fs = require('fs');
 const {spawn} = require('child_process');
+const http = require('http');
+
+const prefix = ',';
+const audioFileFormat = 'flac';
+const recognitionServiceEndpoint = 'http://localhost:8080';
+const killList = ['reddevil21', 'tomasbm'];
 
 let bot;
 let voiceConnection;
-const prefix = ',';
-let counter = 0;
+let audioFileCounter = 0;
+
 
 exports.registerBot = function registerBot(inputBot) {
 	bot = inputBot;
@@ -61,14 +67,15 @@ async function handleJoin(message, args) {
 
 	voiceConnection.on('speaking', (user, speaking) => {		
 
-		if (!speaking.has('SPEAKING') || !validObject(user) || user.username !== 'pedrofixe')
+		if (!speaking.has('SPEAKING') || !validObject(user))
 			return;
 
 		console.log(`started listening  to ${user.username}...`);
 
-		let filename = 'user_audio' + counter++;
+		const filename = 'user_audio' + audioFileCounter++;
+		const filepath = 'speechRecognizer/tmp_audio_files/' + filename;
 		let audioStream = voiceConnection.receiver.createStream(user, {mode: 'pcm'});
-		let outputStream = fs.createWriteStream(filename);
+		let outputStream = fs.createWriteStream(filepath);
 		audioStream.pipe(outputStream);
 
 		audioStream.on('error', (error) => {
@@ -79,7 +86,7 @@ async function handleJoin(message, args) {
 		audioStream.on('end', () => {
 			console.log(`done listening to ${user.username}`);
 
-			convertPCMToOpus(filename);
+			convertPCM(filepath, filename, user, message);
 		});
 
 	})
@@ -87,33 +94,84 @@ async function handleJoin(message, args) {
 	console.log('Joined channel ' + voiceConnection.channel.name);
 }
 
-function convertPCMToOpus(filename) {
-	
-	const spawnedProcess = spawn('ffmpeg', ['-nostdin', '-y', '-f', 's16le', '-ar', '48000', '-ac', '2', '-i', filename, filename + '.ogg']);
+function convertPCM(filepath, filename, user, message) {
+	const newFilepath = filepath + '.' + audioFileFormat;
+	const newFilename = filename + '.' + audioFileFormat;
 
-    spawnedProcess.on('error', function (err) {
-        console.log("FFmpeg was not found");
-    });
+	const spawnedProcess = spawn('ffmpeg', ['-nostdin', '-y', '-f', 's16le', '-ar', '48000', '-ac', '2', '-i', filepath, '-ar', '16000', '-ac', '1', newFilepath]);
 
-    spawnedProcess.stdout.on('data', function (data) {
-        console.log('ffmpeg: ' + data.toString());
-    });
+	spawnedProcess.on('error', function (err) {
+		console.log("FFmpeg was not found");
+	});
 
-    spawnedProcess.stderr.on('data', function (data) {
-        // console.log('ffmpeg: ' + data.toString());
-    });
+	spawnedProcess.stdout.on('data', function (data) {
+		console.log('ffmpeg: ' + data.toString());
+	});
 
-    spawnedProcess.on('exit', function (code) {
+	spawnedProcess.stderr.on('data', function (data) {
+		// console.log('ffmpeg: ' + data.toString());
+	});
 
-        if (code === 0) {
-            console.log("ffmpeg was successful");
-        }
-        else {
-            console.log("ffmpeg failed");
+	spawnedProcess.on('exit', function (code) {
+
+		if (code === 0) {
+			console.log("ffmpeg was successful");
+		}
+		else {
+			console.log("ffmpeg failed");
 		}
 		
-		fs.unlink(filename, () => {});
-    });
+		fs.unlink(filepath, () => {
+			requestRecognition(newFilename, user, message);
+		});
+	});
+}
+
+function requestRecognition(filename, user, message) {
+
+	http.get(recognitionServiceEndpoint + '/recognize/' + filename, (res) => {
+
+		const { statusCode } = res;
+		const contentType = res.headers['content-type'];
+
+		let error;
+		if (statusCode !== 200) {
+			error = new Error('Request Failed.\n' + `Status Code: ${statusCode}`);
+		} else if (!/^application\/json/.test(contentType)) {
+			error = new Error('Invalid content-type.\n' + `Expected application/json but received ${contentType}`);
+		}
+		if (error) {
+			console.error(error.message);
+			// Consume response data to free up memory
+			res.resume();
+			return;
+		}
+
+		res.setEncoding('utf8');
+		let rawData = '';
+		res.on('data', (chunk) => { rawData += chunk; });
+		res.on('end', () => {
+			try {
+				const parsedData = JSON.parse(rawData);
+
+				if (parsedData.success) {
+					console.log(parsedData);
+
+					let channel = message.guild.channels.resolve('728239336214102116');
+
+					if (channel.type === "text") {
+						channel.send('Watch your profanity ' + user.toString());
+					}
+				}
+
+			} catch (e) {
+				console.error(e.message);
+			}
+		});
+	}).on('error', (e) => {
+	  console.error(`Got error: ${e.message}`);
+	});
+
 }
 
 async function handleLeave(message, args) {
@@ -139,7 +197,29 @@ async function handleLeave(message, args) {
 
 async function handleKill(message, args) {
 
+	if (args.length !== 1) {
+		message.channel.send('yikes');
+		return;
+	}
+
 	message.channel.send("( ͡° ͜ʖ ͡°)=ε/̵͇̿̿/'̿̿ ̿ ̿̿ ̿ ̿   " + args[0]);
+	let guildMember = message.guild.member(args[0]);
+
+	console.log(guildMember.user.tag);
+
+	if (killList.includes(guildMember.user.tag)) {
+		message.channel.send("Say your prayers :)");
+
+		setTimeout((guildMember) => {
+			guildMember.voice.kick();
+
+		}, 3000, guildMember);
+
+	}
+	else {
+		message.channel.send("Looks like you escaped :(");
+	}
+
 }
 
 
@@ -159,8 +239,8 @@ const SILENCE_FRAME = Buffer.from([0xF8, 0xFF, 0xFE]);
 
 class Silence extends Readable {
 	  _read() {
-	    this.push(SILENCE_FRAME);
-	    this.destroy();
+		this.push(SILENCE_FRAME);
+		this.destroy();
 	}
  }
 
