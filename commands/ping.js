@@ -1,9 +1,9 @@
-let client = 'ajaja';
 
 module.exports = {
 	name: 'ping',
 	description: 'Ping!',
-	execute(message, args, client) {
-        console.log(client);
+	execute(message, args) {
+
+		message.channel.send('Pong!');
 	},
 };
