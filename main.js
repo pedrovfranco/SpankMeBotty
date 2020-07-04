@@ -8,6 +8,9 @@ const path  = require('path');
 const commands = require('./commands');
 // require('./database/mongo');
 
+console.log(process.env.RECOGNIZER_KEYWORDS);
+console.log(JSON.parse(process.env.RECOGNIZER_KEYWORDS));
+
 function getCommands() {
 	client.commands = new Discord.Collection();
 
