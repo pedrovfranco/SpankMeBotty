@@ -17,8 +17,6 @@ module.exports = {
 
 async function execute(message, args) {
 
-
-
 	if (args[0] === 'register') {
         handleRegister(message, args);
         

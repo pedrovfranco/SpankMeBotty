@@ -26,7 +26,7 @@ exports.registerBot = function registerBot(inputBot) {
 		const commandName = args.shift().toLowerCase();
 
 		if (!client.commands.has(commandName)) {
-			console.log('Unknown command: ' + command);
+			console.log('Unknown command: ' + commandName);
 			return;
 		}
 

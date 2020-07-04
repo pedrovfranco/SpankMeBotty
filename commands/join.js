@@ -1,7 +1,7 @@
 const common = require('../common');
 const fs = require('fs');
 const {spawn} = require('child_process');
-const http = require('http');
+const axios = require('axios').default;
 const path = require('path');
 const pathToFfmpeg = require('ffmpeg-static');
 
@@ -95,9 +95,10 @@ function convertPCM(filepath, filename, user, message) {
 
 function requestRecognition(filename, user, message) {
 
-	http.get(common.recognitionServiceEndpoint + '/recognize/' + filename, (res) => {
+	axios.get(common.recognitionServiceEndpoint + '/recognize/' + filename,)
+	.then( (res) => {
 
-		const { statusCode } = res;
+		const statusCode = res.status;
 		const contentType = res.headers['content-type'];
 
 		let error;
@@ -109,34 +110,30 @@ function requestRecognition(filename, user, message) {
 		if (error) {
 			console.error(error.message);
 			// Consume response data to free up memory
-			res.resume();
 			return;
 		}
 
-		res.setEncoding('utf8');
-		let rawData = '';
-		res.on('data', (chunk) => { rawData += chunk; });
-		res.on('end', () => {
-			try {
-				const parsedData = JSON.parse(rawData);
+		try {
+			const parsedData = res.data;
 
-				if (parsedData.success) {
-					console.log(parsedData);
+			if (parsedData.success) {
+				console.log(parsedData);
 
-					let channel = message.guild.channels.resolve('728239336214102116');
+				let channel = message.guild.channels.resolve('728239336214102116');
 
-					if (channel.type === "text") {
-						channel.send('Watch your profanity ' + user.toString());
-					}
+				if (channel.type === "text") {
+					channel.send('Watch your profanity ' + user.toString());
 				}
-
-			} catch (e) {
-				console.error(e.message);
 			}
-		});
-	}).on('error', (e) => {
-	  console.error(`Got error: ${e.message}`);
-	});
+
+		} catch (e) {
+			console.error(e.message);
+		}
+	})
+	.catch(function (error) {
+		// handle error
+		console.log(error);
+	})
 
 }
 
