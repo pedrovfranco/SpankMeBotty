@@ -2,11 +2,11 @@ const Discord = require('discord.js');
 const fs = require('fs');
 const path  = require('path');
 
-if (require('dotenv').config().error != undefined)
-	console.log("Failed to read .env!");
+// if (require('dotenv').config().error != undefined)
+// 	console.log("Failed to read .env!");
 
 const commands = require('./commands');
-require('./database/mongo');
+// require('./database/mongo');
 
 function getCommands() {
 	client.commands = new Discord.Collection();
