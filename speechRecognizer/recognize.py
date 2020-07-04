@@ -16,14 +16,18 @@ print('recognizer_keywords:')
 print(recognizer_keywords)
 
 def recognizeAudioFile(filename):
+	print('before AUDIO_FILE')
 	AUDIO_FILE = path.join(path.dirname(path.realpath(__file__)), tmp_folder + '/' + filename)
+
+	print('AUDIO_FILE')
+	print(AUDIO_FILE)
 
 	# use the audio file as the audio source
 	r = sr.Recognizer()
 	with sr.AudioFile(AUDIO_FILE) as source:
 		audio = r.record(source)  # read the entire audio file
 
-	result = RecognizeResultType();
+	result = RecognizeResultType()
 	result.filename = filename
 
 	# recognize speech using Sphinx

@@ -22,4 +22,4 @@ def serveRecognizeAudioFile(filename):
 
 
 if __name__ == '__main__':
-    app.run(port=8080, debug=False)
+    app.run(debug=False)
