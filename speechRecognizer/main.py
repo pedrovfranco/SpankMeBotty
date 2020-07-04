@@ -2,13 +2,12 @@
 
 import flask
 import json
+import os
 
 from constants import RecognizeResultType
 from recognize import recognizeAudioFile
 
 app = flask.Flask(__name__)
-app.config["DEBUG"] = True
-
 
 @app.route('/recognize/<filename>', methods=['GET'])
 def serveRecognizeAudioFile(filename):
@@ -20,6 +19,6 @@ def serveRecognizeAudioFile(filename):
     print(response.__dict__)
     return flask.jsonify(response.__dict__)
 
-
 if __name__ == '__main__':
-    app.run(debug=False)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)

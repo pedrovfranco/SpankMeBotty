@@ -1,7 +1,7 @@
 
 exports.prefix = ',';
 exports.audioFileFormat = 'flac';
-exports.recognitionServiceEndpoint = 'http://localhost:8080';
+exports.recognitionServiceEndpoint = process.env.NODE_ENV==='production' ? 'https://spank-me-botty.herokuapp.com' : 'http://localhost:' + (5000);
 exports.killList = ['reddevil21', 'tomasbm'];
 exports.audioFileCounter = 0;
 
