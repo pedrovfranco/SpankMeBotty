@@ -20,7 +20,12 @@
   "homepage": "https://github.com/pedrovfranco/SpankMeBotty#readme",
   "dependencies": {
     "@discordjs/opus": "^0.3.2",
+    "axios": "^0.19.2",
     "discord.js": "^12.2.0",
-    "dotenv": "^8.2.0"
+    "dotenv": "^8.2.0",
+    "ffmpeg-static": "^4.2.5",
+    "image-downloader": "^4.0.1",
+    "image-type": "^4.1.0",
+    "mongoose": "^5.9.21"
   }
 }

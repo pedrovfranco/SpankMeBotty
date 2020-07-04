@@ -263,3 +263,5 @@ cython_debug/
 speechRecognizer/tmp_audio_files*
 speechRecognizer/adaptation/
 keywords.txt
+database/mongodb_files
+emotes
