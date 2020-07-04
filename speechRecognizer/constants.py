@@ -1,5 +1,6 @@
 import collections
-from os import path
+import os
+path = os.path
 
 class RecognizeResultType:
 	def __init__(self, success=False, message='', filename=''):
