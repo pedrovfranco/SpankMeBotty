@@ -13,6 +13,8 @@ app.config["DEBUG"] = True
 @app.route('/recognize/<filename>', methods=['GET'])
 def serveRecognizeAudioFile(filename):
 
+    print('get request')
+
     response = recognizeAudioFile(filename)
     print(filename + ':')
     print(response.__dict__)

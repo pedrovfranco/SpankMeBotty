@@ -1,2 +1,2 @@
-web: python speechRecognizer/main.py  
+web: gunicorn speechRecognizer/wsgi:app  
 worker: node main.js
