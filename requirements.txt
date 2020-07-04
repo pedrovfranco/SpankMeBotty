@@ -1,2 +1,2 @@
 flask
-speech_recognition
+SpeechRecognition
