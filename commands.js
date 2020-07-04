@@ -54,10 +54,6 @@ exports.registerBot = function registerBot(inputBot) {
 	});
 }
 
-exports.ping = function ping() {
-	console.log(client);
-}
-
 async function handleExactEmojiMessage(message) {
 
 	Emote.findOne({ name: message.content }).orFail()
