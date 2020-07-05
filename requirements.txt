@@ -1,5 +1,4 @@
 Flask
 SpeechRecognition
-PocketSphinx
 setuptools
 wheel
