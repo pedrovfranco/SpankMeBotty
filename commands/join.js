@@ -132,9 +132,7 @@ function requestRecognition(filename, user, message) {
 	})
 	.catch(function (error) {
 		// handle error
-		console.log(error);
-	})
-
+		console.log(`${error.code}: ${error.statusMessage}`);
 }
 
 const { Readable } = require('stream');
