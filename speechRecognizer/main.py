@@ -9,6 +9,13 @@ from recognize import recognizeAudioFile
 
 app = flask.Flask(__name__)
 
+@app.route('/ping', methods=['GET'])
+def ping():
+
+    print('alive!')
+    return ("pong")
+
+
 @app.route('/recognize/<filename>', methods=['GET'])
 def serveRecognizeAudioFile(filename):
 

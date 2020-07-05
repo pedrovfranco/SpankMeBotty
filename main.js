@@ -1,10 +1,9 @@
 const Discord = require('discord.js');
 const fs = require('fs');
 const path  = require('path');
+const axios = require('axios');
 
-// if (require('dotenv').config().error != undefined)
-// 	console.log("Failed to read .env!");
-
+const common = require('./common');
 const commands = require('./commands');
 require('./database/mongo');
 
@@ -29,6 +28,21 @@ getCommands();
 client.once('ready', () => {
 	console.log('Ready!');
 });
+
+
+// Create recurrent polling of python web server every 30 seconds
+setInterval(() => {
+	axios.get(common.recognitionServiceEndpoint + '/ping')
+	.then( (res) => {
+		if (res.status !== 200) {
+			console.log('Error pinging python web server!');
+		}
+	})
+	.catch(function (error) {
+		// handle error
+		console.log(`${error.response.status}: ${error.response.statusText}`);
+	});
+}, 30 * 1000)
 
 commands.registerBot(client);
 

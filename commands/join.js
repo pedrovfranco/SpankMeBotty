@@ -132,7 +132,7 @@ function requestRecognition(filename, user, message) {
 	})
 	.catch(function (error) {
 		// handle error
-		console.log(`${error.code}: ${error.statusMessage}`);
+		console.log(`${error.response.status}: ${error.response.statusText}`);
 	});
 }
 
