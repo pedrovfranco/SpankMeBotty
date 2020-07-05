@@ -38,7 +38,15 @@ exports.registerBot = function registerBot(inputBot) {
 			let reply = `You didn't provide any arguments, ${message.author}!`;
 	
 			if (command.usage) {
-				reply += `\nUsage: \`${common.prefix}${command.name} ${command.usage}\``;
+				reply += `\nUsage:`;
+				
+				let lines = command.usage.split('\n');
+
+				for (const line of lines) {
+					reply += `\n\`${common.prefix}${command.name} ${line}\``;
+				}
+
+				
 			}
 		
 			return message.channel.send(reply);
@@ -56,24 +64,6 @@ exports.registerBot = function registerBot(inputBot) {
 
 async function handleExactEmojiMessage(message) {
 
-	Emote.findOne({ name: message.content }).orFail()
-	.then(result => {
+	common.sendEmote(message, message.content);
 
-		// Send a local file
-		message.channel.send({
-			files: [{
-				attachment: result.filepath,
-			}]
-		})
-		.then((res) => {
-			message.delete()
-			.catch(console.error);
-		})
-		.catch((err) => {
-			console.log('Failed to send ' + message.content);
-			console.error(err);
-		});
-	})
-	.catch(err => {
-	})
 }

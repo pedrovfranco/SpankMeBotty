@@ -11,7 +11,7 @@ module.exports = {
     description: 'Manage emotes',
     args: true,
     minargs: 1,
-    usage: '<register/remove> <emote_name> <emote_link>',
+    usage: 'register <emote_name> <emote_link>\nremove <emote_name>\nlist',
 	execute,
 };
 
@@ -76,22 +76,18 @@ function handleRegister(message, args) {
     .then(({ filename }) => {
 
         let filepath = filename;
-        const prunedFilepath = filepath.substr(0, filepath.lastIndexOf('.'));
 
-        fs.readFile(filepath, (err, data) => {
+        try {
+            let data = fs.readFileSync(filepath);
 
-            if (err) {
-                console.log(err);
-            }
+            console.log("The file was saved!");
 
             const imageInfo = imageType(data);
 
-            fs.renameSync(filepath, prunedFilepath + '.' + imageInfo.ext);
-            filepath = prunedFilepath + '.' + imageInfo.ext;
-
             const newEmote = new Emote({
                 name: emoteName,
-                filepath: filepath,
+                data: data,
+                filename: emoteName + '.' + imageInfo.ext,
                 creator: message.author.tag,
             });
 
@@ -99,20 +95,33 @@ function handleRegister(message, args) {
             .then(mapping => {
                 console.log('Saved ' + emoteName);
                 message.channel.send('Saved ' + emoteName);
+                fs.unlink(filepath, (err) => {
+                    if (err) {
+                        console.log(err);
+                        return;
+                    }
+                });
             })
             .catch(err => {
-                console.log(err);
                 let errorMsg = 'Failed to save ' + emoteName;
 
                 if (err.code === 11000) {
                     errorMsg += ', name already exists';
                 }
+                else {
+                    errorMsg += ', unknown error';
+                    console.log(err);
+                }
 
                 message.channel.send(errorMsg);
             });
+            
+        }
+        catch (err) {
+            console.log(err);
+            return;
+        }
         
-            console.log("The file was saved!");
-        });
     })
     .catch((err) => {
         console.error(err);

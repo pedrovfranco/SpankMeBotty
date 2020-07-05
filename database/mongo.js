@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
  
 const dbName = 'spank-me-botty'
-let url = (process.env.NODE_ENV === 'production') ? `${process.env.DATABASE_URL}${dbName}?retryWrites=true&w=majority` : 'mongodb://localhost:27017/';
+let url = (process.env.NODE_ENV === 'production') ? `${process.env.DATABASE_URL}${dbName}?retryWrites=true&w=majority` : `mongodb://localhost:27017/${dbName}`;
 
 console.log("MongoDB URL: " + url);
 

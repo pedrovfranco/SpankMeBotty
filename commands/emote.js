@@ -1,4 +1,5 @@
-const Emote = require('../database/models/emote');
+const common = require('../common');
+const fs = require('fs');
 
 module.exports = {
 	name: 'emote',
@@ -16,27 +17,7 @@ async function execute(message, args) {
 
 	if (args.length === 1) {
 
-		Emote.findOne({ name: args[0] }).orFail()
-		.then(result => {
+		common.sendEmote(message, args[0]);
 
-			// Send a local file
-			message.channel.send({
-				files: [{
-					attachment: result.filepath,
-				}]
-			})
-			.then((res) => {
-				message.delete()
-				.catch(console.error);
-			})
-			.catch((err) => {
-				console.log('Failed to send ' + args[0]);
-				console.error(err);
-			});
-		})
-		.catch(err => {
-			console.log(err);
-			message.channel.send('Emote does not exist!');
-		})
 	}
 }

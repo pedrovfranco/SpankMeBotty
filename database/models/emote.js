@@ -6,7 +6,8 @@ const { Schema } = mongoose;
 const emoteSchema = new Schema(
 	{
 		name: { type: String, required: true, unique: true },
-		filepath: { type: String, required: true },
+		data: { type: mongoose.SchemaTypes.Buffer, required: true },
+		filename: { type: String, required: true },
 		creator: { type: String, required: true },
 	},
 	{
