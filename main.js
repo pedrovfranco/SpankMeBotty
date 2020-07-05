@@ -6,11 +6,11 @@ const path  = require('path');
 // 	console.log("Failed to read .env!");
 
 const commands = require('./commands');
-// require('./database/mongo');
+require('./database/mongo');
 
-console.log(process.env.NODE_ENV);
+console.log('NODE_ENV=' + process.env.NODE_ENV);
 
-console.log(process.env.RECOGNIZER_KEYWORDS);
+console.log('RECOGNIZER_KEYWORDS=' + process.env.RECOGNIZER_KEYWORDS);
 
 function getCommands() {
 	client.commands = new Discord.Collection();
