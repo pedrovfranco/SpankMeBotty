@@ -1,10 +1,10 @@
 const common = require('../common');
 const fs = require('fs');
+const emoteConfig = require('./emoteconfig')
 
 module.exports = {
 	name: 'emote',
     description: 'Prints an emote to the text channel',
-    args: true,
     usage: '<emote_name>',
 	execute,
 };
@@ -12,10 +12,9 @@ module.exports = {
 async function execute(message, args) {
 
 	if (args.length === 0) {
-		return;
+		emoteConfig.handleList(message, args);
 	}
-
-	if (args.length === 1) {
+	else if (args.length === 1) {
 
 		common.sendEmote(message, args[0]);
 

@@ -13,6 +13,7 @@ module.exports = {
     minargs: 1,
     usage: 'register <emote_name> <emote_link>\nremove <emote_name>\nlist',
 	execute,
+    handleList,
 };
 
 async function execute(message, args) {
@@ -169,7 +170,10 @@ function handleList(message, args) {
 
     })
     .catch(err => {
-      res.status(404).send(err);
+
+        console.log(err);
+        message.channel.send("Oops, something went wrong!");
+
     })
   
 

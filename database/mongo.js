@@ -10,6 +10,7 @@ mongoose.connect(url, {
   useUnifiedTopology: true,
   useCreateIndex: true, 
   useFindAndModify: false,
+  serverSelectionTimeoutMS: 5000,
 });
 
 let db = mongoose.connection;
