@@ -8,14 +8,14 @@ const pathToFfmpeg = require('ffmpeg-static');
 module.exports = {
 	name: 'join',
 	description: 'Joins the voice channel!',
+	disabled: true,
 	execute
 };
 
 async function execute(message, args) {
 	
-	message.channel.send('Command unavailable!');
-	return;
-
+	// message.channel.send('Command unavailable!');
+	// return;
 
 	if (args.length !== 0) {
 		message.channel.send('Join command has no arguments!');
@@ -126,7 +126,7 @@ function requestRecognition(filename, user, message) {
 				let channel = message.guild.channels.resolve('728239336214102116');
 
 				if (channel.type === "text") {
-					channel.send('Watch your profanity ' + user.toString());
+					// channel.send('Watch your profanity ' + user.toString());
 				}
 			}
 

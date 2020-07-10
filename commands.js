@@ -17,7 +17,7 @@ exports.registerBot = function registerBot(inputBot) {
 			return;
 
 		if (!message.content.startsWith(common.prefix) && flagExactEmoteMatch) {
-			handleExactEmojiMessage(message);
+			handleExactEmoteMessage(message);
 			return;
 		}
 
@@ -45,7 +45,6 @@ exports.registerBot = function registerBot(inputBot) {
 				for (const line of lines) {
 					reply += `\n\`${common.prefix}${command.name} ${line}\``;
 				}
-
 				
 			}
 		
@@ -62,7 +61,7 @@ exports.registerBot = function registerBot(inputBot) {
 	});
 }
 
-async function handleExactEmojiMessage(message) {
+async function handleExactEmoteMessage(message) {
 
 	common.sendEmote(message, message.content);
 
