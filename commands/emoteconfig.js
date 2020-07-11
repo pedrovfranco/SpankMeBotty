@@ -81,9 +81,14 @@ function handleRegister(message, args) {
         try {
             let data = fs.readFileSync(filepath);
 
-            console.log("The file was saved!");
-
             const imageInfo = imageType(data);
+
+            if (!common.validObject(imageInfo)) {
+                message.channel.send("That doesn't look like an image...");
+                return;
+            }
+
+            console.log("The file was saved!");
 
             const newEmote = new Emote({
                 name: emoteName,
@@ -120,11 +125,12 @@ function handleRegister(message, args) {
         }
         catch (err) {
             console.log(err);
+            console.log('oi');
             return;
         }
-        
     })
     .catch((err) => {
+        console.log('io');
         console.error(err);
     });
 

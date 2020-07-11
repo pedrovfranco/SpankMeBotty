@@ -24,14 +24,14 @@ exports.sendEmote = (message, emoteName) => {
 	Emote.findOne({ name: emoteName }).orFail()
 	.then(result => {
 
-		// console.log(result);
-
 		let filepath = path.join('emotes', result.filename);
 		
 		if (!fs.existsSync(filepath))
 			fs.writeFileSync(filepath, result.data, {encoding: 'binary'});
 
-		message.channel.send({
+		let cleanTag = message.author.tag.substr(0, message.author.tag.indexOf('#'));
+
+		message.channel.send(cleanTag, {
 			files: [{
 				attachment: filepath,
 			  }]
