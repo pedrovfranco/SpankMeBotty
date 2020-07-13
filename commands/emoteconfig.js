@@ -141,10 +141,7 @@ function handleRemove(message, args) {
 
     Emote.findOneAndDelete({ name: args[1] }).orFail()
     .then(result => {
-
-        fs.unlink(result.filepath, (err) => {
-            message.channel.send('Removed emote ' + result.name);
-        })
+        message.channel.send('Removed emote ' + result.name);
     })
     .catch(err => {
         console.log(err);
