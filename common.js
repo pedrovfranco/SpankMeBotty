@@ -49,3 +49,8 @@ exports.sendEmote = (message, emoteName) => {
 	})
 
 }
+
+exports.alertAndLog = (message, text) => {
+	message.channel.send(text);
+	console.log(text);
+}

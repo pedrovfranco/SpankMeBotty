@@ -14,9 +14,6 @@ module.exports = {
 
 async function execute(message, args) {
 	
-	// message.channel.send('Command unavailable!');
-	// return;
-
 	if (args.length !== 0) {
 		message.channel.send('Join command has no arguments!');
 		console.log('Join command has no arguments!');
