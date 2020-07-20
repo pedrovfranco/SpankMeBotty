@@ -21,7 +21,9 @@ async function execute(message, args) {
 		return;
 	}
 
-	message.guild.voice.connection.dispatcher.pause();
+	if (common.validObject(message.guild.voice.connection.dispatcher)) {
+		message.guild.voice.connection.dispatcher.pause();
+		console.log('Stopped audio');
+	}
 
-	console.log('Stopped audio');
 }

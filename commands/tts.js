@@ -18,10 +18,11 @@ async function execute(message, args) {
     
     // let textStr = args.join(' ');
     let textStr = message.content.slice(5);
-    console.log(textStr);
     let ttsAddress = 'https://api.streamelements.com/kappa/v2/speech?voice=Brian&text=' + encodeURIComponent(textStr);
 
-    let voiceConnection = await message.member.voice.channel.join();
-    
-    voiceConnection.play(ttsAddress);
+    common.initializeCookieJar();
+
+    common.playTTS(message, textStr);
+
+    // let ttsAddress = 'https://api.streamelements.com/kappa/v2/speech?voice=Brian&text=' + encodeURIComponent(textStr);
 }

@@ -19,9 +19,5 @@ async function execute(message, args) {
     let textStr = args.slice(1).join(' ');
     console.log(textStr);
 
-    let ttsAddress = `https://api.streamelements.com/kappa/v2/speech?voice=${args[0]}&text=${encodeURIComponent(textStr)}`;
-
-    let voiceConnection = await message.member.voice.channel.join();
-
-    await voiceConnection.play(ttsAddress);
+    common.playTTS(message, textStr, args[0]);
 }

@@ -1,4 +1,4 @@
-#----------------------Node.js----------------------
+#------------------------------------------------Node.js------------------------------------------------
 # Logs
 logs
 *.log
@@ -116,7 +116,7 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
-#----------------------Python----------------------
+#------------------------------------------------Python------------------------------------------------
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -258,10 +258,11 @@ dmypy.json
 cython_debug/
 
 
-#----------------------USER DEFINED----------------------
+#------------------------------------------------USER DEFINED------------------------------------------------
 
 speechRecognizer/tmp_audio_files*
 speechRecognizer/adaptation/
 keywords.txt
 database/mongodb_files
 emotes
+tts_files

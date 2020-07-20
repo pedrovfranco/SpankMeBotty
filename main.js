@@ -1,11 +1,13 @@
 const Discord = require('discord.js');
 const fs = require('fs');
 const path  = require('path');
-const axios = require('axios');
 
-const common = require('./common');
 const commands = require('./commands');
 require('./database/mongo');
+
+if (require('dotenv').config().error) {
+	console.error("Failed to load .env file!");
+}
 
 console.log('NODE_ENV=' + process.env.NODE_ENV);
 
