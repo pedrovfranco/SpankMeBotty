@@ -11,7 +11,7 @@ module.exports = {
 
 async function execute(message, args) {
 	
-	if (!common.validObject(message.member.voice.channel)) {
+	if (!common.validObject(message.member) || !common.validObject(message.member.voice) || !common.validObject(message.member.voice.channel)) {
 		message.channel.send('User not in a voice channel!');
 		console.log('User not in a voice channel!');
 		return;
