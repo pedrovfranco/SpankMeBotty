@@ -34,6 +34,11 @@ exports.registerBot = function registerBot(inputBot) {
 
 		const command = client.commands.get(commandName);
 
+		if (command.disabled) {
+			common.alertAndLog(message, 'That command is disabled!');
+			return;
+		}
+
 		if ((command.args && !args.length) || (command.minargs && args.length < command.minargs)) {
 			let reply = `You didn't provide any arguments, ${message.author}!`;
 	

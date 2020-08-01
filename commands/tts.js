@@ -12,17 +12,17 @@ module.exports = {
 async function execute(message, args) {
 	
 	if (!common.validObject(message.member) || !common.validObject(message.member.voice) || !common.validObject(message.member.voice.channel)) {
-		message.channel.send('User not in a voice channel!');
-		console.log('User not in a voice channel!');
+        common.alertAndLog(message, 'User not in a voice channel!');
 		return;
     }
     
     // let textStr = args.join(' ');
     let textStr = message.content.slice(5);
-    console.log(textStr);
     let ttsAddress = 'https://api.streamelements.com/kappa/v2/speech?voice=Brian&text=' + encodeURIComponent(textStr);
 
-    let voiceConnection = await message.member.voice.channel.join();
-    
-    voiceConnection.play(ttsAddress);
+    common.initializeCookieJar();
+
+    common.playTTS(message, textStr);
+
+    // let ttsAddress = 'https://api.streamelements.com/kappa/v2/speech?voice=Brian&text=' + encodeURIComponent(textStr);
 }
