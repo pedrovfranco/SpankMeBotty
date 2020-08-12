@@ -24,6 +24,7 @@
     "axios-cookiejar-support": "^1.0.0",
     "discord.js": "^12.2.0",
     "dotenv": "^8.2.0",
+    "express": "^4.17.1",
     "ffmpeg-static": "^4.2.5",
     "https-proxy-agent": "^5.0.0",
     "image-downloader": "^4.0.1",

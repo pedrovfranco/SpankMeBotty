@@ -4,14 +4,22 @@ const path  = require('path');
 
 const commands = require('./commands');
 require('./database/mongo');
+const webServer = require('./webserver/web');
+
+let client;
 
 if (require('dotenv').config().error) {
 	console.error("Failed to load .env file!");
 }
 
-console.log('NODE_ENV=' + process.env.NODE_ENV);
+function printEnvVariables() {
+	console.log('NODE_ENV=' + process.env.NODE_ENV);
+	console.log('RECOGNIZER_KEYWORDS=' + process.env.RECOGNIZER_KEYWORDS);
+	console.log(`DISCORD_TOKEN = ${process.env.DISCORD_TOKEN}`);
 
-console.log('RECOGNIZER_KEYWORDS=' + process.env.RECOGNIZER_KEYWORDS);
+}
+
+
 
 function getCommands() {
 	client.commands = new Discord.Collection();
@@ -24,12 +32,13 @@ function getCommands() {
 	}
 }
 
-const client = new Discord.Client();
-getCommands();
+function startClient() {
+	client = new Discord.Client();
 
-client.once('ready', () => {
-	console.log('Ready!');
-});
+	client.once('ready', () => {
+		console.log('Ready!');
+	});
+}
 
 
 // Create recurrent polling of python web server every 30 seconds
@@ -46,7 +55,18 @@ client.once('ready', () => {
 // 	});
 // }, 30 * 1000)
 
-commands.registerBot(client);
 
-console.log(`Token = ${process.env.DISCORD_TOKEN}`);
-client.login(process.env.DISCORD_TOKEN);
+function main() {
+	printEnvVariables();
+
+	startClient();
+
+	getCommands();
+	commands.registerBot(client);
+
+	client.login(process.env.DISCORD_TOKEN);
+
+	webServer.startServer();
+}
+
+main();

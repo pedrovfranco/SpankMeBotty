@@ -11,7 +11,7 @@ exports.prefix = ',';
 exports.audioFileFormat = 'flac';
 exports.recognitionServiceEndpoint = process.env.NODE_ENV==='production' ? 'https://spank-me-botty.herokuapp.com' : 'http://localhost:' + (5000);
 exports.audioFileCounter = 0;
-
+exports.twitchToken = "";
 
 exports.validObject = (obj) => {
 	return (obj !== undefined && obj !== null);
@@ -255,4 +255,9 @@ exports.getNewProxy = () => {
 			reject(error);
 		});
 	});
+}
+
+
+exports.registerTwitchToken = (token) => {
+	exports.twitchToken = token;
 }
