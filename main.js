@@ -19,8 +19,6 @@ function printEnvVariables() {
 
 }
 
-
-
 function getCommands() {
 	client.commands = new Discord.Collection();
 

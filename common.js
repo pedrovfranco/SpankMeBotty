@@ -11,7 +11,7 @@ exports.prefix = ',';
 exports.audioFileFormat = 'flac';
 exports.recognitionServiceEndpoint = process.env.NODE_ENV==='production' ? 'https://spank-me-botty.herokuapp.com' : 'http://localhost:' + (5000);
 exports.audioFileCounter = 0;
-exports.twitchToken = "";
+exports.twitchToken  = { access_token: '', expires_in: 0, expiration_date: 0, token_type: ''};
 
 exports.validObject = (obj) => {
 	return (obj !== undefined && obj !== null);
@@ -257,7 +257,19 @@ exports.getNewProxy = () => {
 	});
 }
 
-
 exports.registerTwitchToken = (token) => {
 	exports.twitchToken = token;
+	exports.twitchToken.expiration_date = Date.now() + exports.twitchToken.expires_in * 1000;
+
+	if (exports.twitchToken.token_type.toLowerCase() === 'bearer') {
+		exports.twitchToken.token_type = 'Bearer';
+	}
+}
+
+exports.isTwitchTokenValid = () => {
+
+	if (exports.twitchToken === undefined)
+		return false;
+
+	return Date.now > exports.twitchToken.expiration_date;
 }
