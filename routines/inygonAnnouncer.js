@@ -70,6 +70,11 @@ exports.checkForStream = async () => {
     }).then(response => {
 
         let data = response.data.data.filter(element => element.type === 'live');
+
+        for (const element of data) {
+            element.user_name = element.user_name.toLowerCase();
+        }
+
         let streamsToBeAnnounced = data.filter(element => !isStreamLive(element.user_name));
         let announceStr = "";
 
