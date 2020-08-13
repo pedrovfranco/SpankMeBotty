@@ -48,19 +48,22 @@ function startInygonRoutine() {
 	}, 10 * 1000); // Polls twitch every 5 minutes
 }
 
-// Create recurrent polling of python web server every 30 seconds
-// setInterval(() => {
-// 	axios.get(common.recognitionServiceEndpoint + '/ping')
-// 	.then( (res) => {
-// 		if (res.status !== 200) {
-// 			console.log('Error pinging python web server!');
-// 		}
-// 	})
-// 	.catch(function (error) {
-// 		// handle error
-// 		console.log(`${error.response.status}: ${error.response.statusText}`);
-// 	});
-// }, 30 * 1000)
+function startPingRoutine() {
+	// Create recurrent polling of web server every 30 seconds
+	setInterval(() => {
+		axios.get(common.recognitionServiceEndpoint)
+			.then((res) => {
+				if (res.status !== 200) {
+					console.log('Error pinging python web server!');
+				}
+			})
+			.catch(function (error) {
+				// handle error
+				console.log(`${error.response.status}: ${error.response.statusText}`);
+			});
+	}, 30 * 1000)
+
+}
 
 
 function main() {
