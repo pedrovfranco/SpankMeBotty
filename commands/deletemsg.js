@@ -11,7 +11,7 @@ module.exports = {
 
 async function execute(message, args) {
 	
-    let numMsgs = args[0];
+    let numMsgs = parseInt(args[0]);
 
     if (numMsgs < 1) {
         message.channel.send('Number of messages must be greater than 0!');
