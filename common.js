@@ -7,6 +7,7 @@ const httpsProxyAgent = require('https-proxy-agent');
 
 const Emote = require('./database/models/emote');
 
+exports.client;
 exports.prefix = ',';
 exports.audioFileFormat = 'flac';
 exports.recognitionServiceEndpoint = process.env.NODE_ENV==='production' ? 'https://spank-me-botty.herokuapp.com' : 'http://localhost:' + (5000);
@@ -57,6 +58,20 @@ exports.sendEmote = (message, emoteName) => {
 exports.alertAndLog = (message, text) => {
 	message.channel.send(text);
 	console.log(text);
+}
+
+exports.printUsage = (message, command) => {
+	if (command.usage) {
+		let reply = `\nUsage:`;
+
+		let lines = command.usage.split('\n');
+
+		for (const line of lines) {
+			reply += `\n\`${exports.prefix}${command.name} ${line}\``;
+		}
+
+		return message.channel.send(reply);
+	}
 }
 
 exports.initializeCookieJar = () => {

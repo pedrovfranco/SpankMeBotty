@@ -40,20 +40,10 @@ exports.registerBot = function registerBot(inputBot) {
 		}
 
 		if ((command.args && !args.length) || (command.minargs && args.length < command.minargs)) {
-			let reply = `You didn't provide any arguments, ${message.author}!`;
 	
-			if (command.usage) {
-				reply += `\nUsage:`;
-				
-				let lines = command.usage.split('\n');
-
-				for (const line of lines) {
-					reply += `\n\`${common.prefix}${command.name} ${line}\``;
-				}
-				
-			}
+			common.printUsage(message, command);
 		
-			return message.channel.send(reply);
+			return;
 		}
 
 		try {

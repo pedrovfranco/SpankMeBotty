@@ -22,7 +22,7 @@ async function execute(message, args) {
         handleRegister(message, args);
         
         if (args.length === 1) {
-            message.channel.send(`Usage: \`${common.prefix}${module.exports.name} ${module.exports.usage}\``);
+            common.printUsage(message, module.exports);
             return;
         }
     }
@@ -30,7 +30,7 @@ async function execute(message, args) {
         handleRemove(message, args);
 
         if (args.length === 1) {
-            message.channel.send(`Usage: \`${common.prefix}${module.exports.name} ${module.exports.usage}\``);
+            common.printUsage(message, module.exports);
             return;
         }
     }

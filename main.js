@@ -2,9 +2,11 @@ const Discord = require('discord.js');
 const fs = require('fs');
 const path  = require('path');
 
-const commands = require('./commands');
 require('./database/mongo');
+const common = require('./common')
+const commands = require('./commands');
 const webServer = require('./webserver/web');
+const inygonAnnouncer = require('./routines/inygonAnnouncer');
 
 let client;
 
@@ -19,6 +21,16 @@ function printEnvVariables() {
 
 }
 
+function startClient() {
+	client = new Discord.Client();
+
+	common.client = client;
+
+	client.once('ready', () => {
+		console.log('Ready!');
+	});
+}
+
 function getCommands() {
 	client.commands = new Discord.Collection();
 
@@ -30,14 +42,11 @@ function getCommands() {
 	}
 }
 
-function startClient() {
-	client = new Discord.Client();
-
-	client.once('ready', () => {
-		console.log('Ready!');
-	});
+function startInygonRoutine() {
+	setInterval(() => {
+		inygonAnnouncer.checkForStream();
+	}, 10 * 1000); // Polls twitch every 5 minutes
 }
-
 
 // Create recurrent polling of python web server every 30 seconds
 // setInterval(() => {
@@ -65,6 +74,8 @@ function main() {
 	client.login(process.env.DISCORD_TOKEN);
 
 	webServer.startServer();
+
+	startInygonRoutine();
 }
 
 main();
