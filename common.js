@@ -107,8 +107,6 @@ exports.playTTS = async (message, text = '', voice = 'Brian') => {
 		return;
 	}
 
-	let proxyLink
-
 	axios.post(ttsAddress, querystring.stringify({
 		msg: text,
 		lang: voice,

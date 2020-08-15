@@ -25,14 +25,15 @@ exports.registerBot = function registerBot(inputBot) {
 		const args = cleanMsg.split(/\s+/g);
 		const commandName = args.shift().toLowerCase();
 
-		if (!client.commands.has(commandName)) {
+		// Find command with name or alias
+		const command = client.commands.find(element => element.name === commandName || (element.alias !== undefined && (element.alias === commandName || element.alias.find(alias => alias === commandName))));
+
+		if (command === undefined) {
 			console.log('Unknown command: ' + commandName);
 			return;
 		}
 
 		common.printCommand(message);
-
-		const command = client.commands.get(commandName);
 
 		if (command.disabled) {
 			common.alertAndLog(message, 'That command is disabled!');
