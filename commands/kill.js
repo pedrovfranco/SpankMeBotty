@@ -1,4 +1,4 @@
-const common = require('../common');
+const common = require('../common/common');
 const KillList = require('../database/models/killList');
 
 module.exports = {

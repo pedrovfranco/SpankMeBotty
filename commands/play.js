@@ -1,6 +1,6 @@
 const ytdl = require('ytdl-core');
 
-const common = require('../common');
+const common = require('../common/common');
 
 module.exports = {
     name: 'play',

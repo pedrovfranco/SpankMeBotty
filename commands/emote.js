@@ -1,4 +1,4 @@
-const common = require('../common');
+const common = require('../common/common');
 const fs = require('fs');
 const emoteConfig = require('./emoteconfig')
 

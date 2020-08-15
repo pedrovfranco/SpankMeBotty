@@ -1,6 +1,6 @@
 const axios = require('axios').default;
 
-const common = require('../common');
+const common = require('../common/common');
 const InygonAnnounceList = require('../database/models/inygonAnnounceList');
 
 let streams = [{ name: 'inygontv1', live: false }, { name: 'inygontv2', live: false }, { name: 'inygontv3', live: false }];

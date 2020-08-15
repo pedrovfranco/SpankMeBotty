@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const download = require('image-downloader')
 const imageType = require('image-type');
-const common = require('../common');
+const common = require('../common/common');
 
 const Emote = require('../database/models/emote');
 

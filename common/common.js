@@ -5,7 +5,7 @@ const axios = require('axios').default;
 const querystring = require('querystring');
 const httpsProxyAgent = require('https-proxy-agent');
 
-const Emote = require('./database/models/emote');
+const Emote = require('../database/models/emote');
 
 exports.client;
 exports.prefix = ',';

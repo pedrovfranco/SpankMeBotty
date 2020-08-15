@@ -2,7 +2,7 @@ const express = require('express')
 const app = express()
 const port = process.env.PORT || 5000;
 
-const common = require('../common');
+const common = require('../common/common');
 const inygonAnnouncer = require('../routines/inygonAnnouncer');
 
 app.get('/', (req, res) => {
