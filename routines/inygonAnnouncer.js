@@ -3,7 +3,8 @@ const axios = require('axios').default;
 const common = require('../common');
 const InygonAnnounceList = require('../database/models/inygonAnnounceList');
 
-exports.streams = [{ name: 'inygontv1', live: false }, { name: 'inygontv2', live: false }, { name: 'inygontv3', live: false }];
+let streams = [{ name: 'inygontv1', live: false }, { name: 'inygontv2', live: false }, { name: 'inygontv3', live: false }];
+let firstRun = true;
 
 function requestTwitchToken() {
 
@@ -32,29 +33,11 @@ function requestTwitchToken() {
     });
 }
 
-function findStreamByName(name) {
-    for (let i = 0; i < exports.streams.length; i++) {
-        if (exports.streams[i].name === name)
-            return i;
-    }
-
-    return -1;
-}
-
-function isStreamLive(name) {
-    for (let i = 0; i < exports.streams.length; i++) {
-        if (exports.streams[i].name === name)
-            return exports.streams[i].live;
-    }
-
-    return false;
-}
-
 exports.checkForStream = async () => {
     
     let params = new URLSearchParams();
 
-    for (const stream of exports.streams) {
+    for (const stream of streams) {
         params.append('user_login', stream.name);
     }
 
@@ -78,7 +61,7 @@ exports.checkForStream = async () => {
         let streamsToBeAnnounced = data.filter(element => !isStreamLive(element.user_name));
         let announceStr = "";
 
-        if (streamsToBeAnnounced.length > 0) {
+        if (streamsToBeAnnounced.length > 0 && !firstRun) {
        
             if (streamsToBeAnnounced.length === 1) {
                 announceStr += streamsToBeAnnounced[0].user_name + " is live";
@@ -124,10 +107,10 @@ exports.checkForStream = async () => {
                     .then(channel => channel.send(announceStr));
             })
         }
-
+        
         // Update streams status according to 'data' array
-        for (let i = 0; i < exports.streams.length; i++) {
-            const element = exports.streams[i];
+        for (let i = 0; i < streams.length; i++) {
+            const element = streams[i];
 
             let found = false;
             for (const liveElem of data) {
@@ -140,14 +123,29 @@ exports.checkForStream = async () => {
             element.live = found;
         }
 
+        firstRun = false;
+
     }).catch(async (err) => {
 
-        if (err.response.status === 401) {
-            await requestTwitchToken();
+        if (err.response !== undefined) {
+            if (err.response.status === 401) {
+                await requestTwitchToken();
 
-            exports.checkForStream();
+                exports.checkForStream();
+            }
+        }
+        else {
+            console.log(err.stack);
         }
     })
+}
 
 
+function isStreamLive(name) {
+    for (let i = 0; i < streams.length; i++) {
+        if (streams[i].name === name)
+            return streams[i].live;
+    }
+
+    return false;
 }
