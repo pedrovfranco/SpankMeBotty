@@ -45,7 +45,7 @@ function getCommands() {
 function startInygonRoutine() {
 	setInterval(() => {
 		inygonAnnouncer.checkForStream();
-	}, 10 * 1000); // Polls twitch every 5 minutes
+	}, 60 * 1000); // Polls twitch every minute
 }
 
 function startPingRoutine() {
