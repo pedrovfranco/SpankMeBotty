@@ -286,3 +286,34 @@ exports.isTwitchTokenValid = () => {
 
 	return Date.now > exports.twitchToken.expiration_date;
 }
+
+exports.secondsToSecondsAndMinutes = (input) => {
+
+	input = parseInt(input);
+
+	let seconds = input % 60;
+	let minutes = Math.floor(input / 60);
+	let hours = Math.floor(input / 60 / 60);
+
+	if (seconds < 10) {
+		seconds = '0' + seconds; 
+	}
+
+	if (minutes < 10) {
+		minutes = '0' + minutes;
+	}
+
+	if (hours < 10) {
+		hours = '0' + hours;
+	}
+
+	let result = "";
+
+	if (hours > 0)
+		result += hours + ':';
+
+	result += minutes + ':';
+	result += seconds;
+
+	return result;
+}

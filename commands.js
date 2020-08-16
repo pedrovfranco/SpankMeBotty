@@ -1,5 +1,5 @@
 
-const common = require('./common.js');
+const common = require('./common/common');
 
 const Emote = require('./database/models/emote');
 
@@ -26,7 +26,20 @@ exports.registerBot = function registerBot(inputBot) {
 		const commandName = args.shift().toLowerCase();
 
 		// Find command with name or alias
-		const command = client.commands.find(element => element.name === commandName || (element.alias !== undefined && (element.alias === commandName || element.alias.find(alias => alias === commandName))));
+		const command = client.commands.find(element => {
+
+			if (element.name === commandName)
+				return true;
+
+			if (element.alias === undefined)
+				return false;
+
+			if (element.alias === commandName )
+				return true;
+
+			if (Array.isArray(element.alias) && element.alias.find(alias => alias === commandName))
+				return true;
+		});
 
 		if (command === undefined) {
 			console.log('Unknown command: ' + commandName);

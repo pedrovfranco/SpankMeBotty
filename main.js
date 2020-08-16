@@ -3,7 +3,7 @@ const fs = require('fs');
 const path  = require('path');
 
 require('./database/mongo');
-const common = require('./common')
+const common = require('./common/common')
 const commands = require('./commands');
 const webServer = require('./webserver/web');
 const inygonAnnouncer = require('./routines/inygonAnnouncer');

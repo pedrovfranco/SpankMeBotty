@@ -1,6 +1,6 @@
-const ytdl = require('ytdl-core');
 
 const common = require('../common/common');
+const music = require('../common/music');
 
 module.exports = {
     name: 'play',
@@ -21,19 +21,17 @@ async function execute(message, args) {
         const expression = /^(https?\:\/\/)?(www\.)?youtube\.com/g;
         
         if (expression.test(link)) {
-            let voiceConnection = await message.member.voice.channel.join();
 
-            try {
-                voiceConnection.play(ytdl(link));
-            }
-            catch (exception) {
+            music.addToQueue(message, link)
+            .catch(exception => {
                 if (exception.message.startsWith('No video id found')) {
                     common.alertAndLog(message, "Link must be a video");
                 }
                 else {
                     common.alertAndLog(message, "Failed to play, the link is probably broken");
                 }
-            }
+            });
+
         }
         else {
             common.alertAndLog(message, "Must be a youtube link");
