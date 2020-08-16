@@ -287,7 +287,7 @@ exports.isTwitchTokenValid = () => {
 	return Date.now > exports.twitchToken.expiration_date;
 }
 
-exports.secondsToSecondsAndMinutes = (input) => {
+exports.formatSeconds = (input) => {
 
 	input = parseInt(input);
 

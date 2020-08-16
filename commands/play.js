@@ -22,16 +22,7 @@ async function execute(message, args) {
         
         if (expression.test(link)) {
 
-            music.addToQueue(message, link)
-            .catch(exception => {
-                if (exception.message.startsWith('No video id found')) {
-                    common.alertAndLog(message, "Link must be a video");
-                }
-                else {
-                    common.alertAndLog(message, "Failed to play, the link is probably broken");
-                }
-            });
-
+            music.addToQueue(message, link);
         }
         else {
             common.alertAndLog(message, "Must be a youtube link");
