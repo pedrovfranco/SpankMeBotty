@@ -9,7 +9,7 @@ module.exports = {
     execute,
 };
 
-const maxTitleLength = 30;
+const maxTitleLength = 41;
 const maxQueueSize = 10;
 
 async function execute(message, args) {
@@ -17,7 +17,7 @@ async function execute(message, args) {
     let guild = music.getGuild(message);
     
     if (guild.queue.length === 0) {
-        message.channel.send("```\n```");
+        message.channel.send('The queue is empty');
         return;
     }
 
@@ -28,7 +28,7 @@ async function execute(message, args) {
         const vid = guild.queue[i];
         let playing = (i === guild.playing);
 
-        if (vid.playing) {
+        if (playing) {
             result += '- ';
         }
         else {
@@ -37,7 +37,7 @@ async function execute(message, args) {
 
         result += '[' + (i+1) + '] ';
 
-        const title = vid.info.title;
+        let title = vid.info.title;
         if (title.length > maxTitleLength) {
             title = title.substr(0, maxTitleLength - 3);
             title += '...';

@@ -9,9 +9,15 @@ module.exports = {
 };
 
 async function execute(message, args) {
-    
-    if (music.streamDispatcher.paused) {
-        music.streamDispatcher.resume();
+
+    let guild = music.getGuild(message);
+
+    if (guild.queue.length === 0) {
+        message.channel.send('The queue is empty');
+        return;
+    }
+
+    if (music.resume(guild)) {
         message.channel.send('Playing');
     }
     else {

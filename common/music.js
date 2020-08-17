@@ -118,7 +118,7 @@ async function onSongPlayingOrStopping(speaking) {
         return;
     }
 
-    if (video.playing && speaking === 0) {
+    if (video.playing && !guild.paused && speaking === 0) {
 
         await exports.skipCurrentSong(this.guild);
     }
@@ -126,7 +126,7 @@ async function onSongPlayingOrStopping(speaking) {
 
 exports.skipCurrentSong = (guild) => {
     return new Promise( async (resolve, reject) => {
-        await stopPlaying(guild);
+        await exports.stopPlaying(guild);
 
         guild.queue.splice(guild.playing, 1);
 
@@ -136,8 +136,36 @@ exports.skipCurrentSong = (guild) => {
     });
 }
 
+exports.pause = (guild) => {
 
-function stopPlaying(guild) {
+    if (guild.streamDispatcher !== undefined) {
+        if (guild.paused) {
+            return false;
+        }
+        else {
+            guild.paused = true;
+            guild.streamDispatcher.pause(false);
+            return true;
+        }
+    }
+}
+
+exports.resume = (guild) => {
+
+    if (guild.streamDispatcher !== undefined) {
+        if (guild.paused) {
+            guild.paused = false;
+            guild.streamDispatcher.resume();
+            return true; 
+        }
+        else {
+            return false;
+        }
+    }
+}
+
+
+exports.stopPlaying = (guild) => {
     return new Promise(async (resolve, reject) => {
 
         if (guild.streamDispatcher !== undefined) {
@@ -155,6 +183,22 @@ function stopPlaying(guild) {
     });
 }
 
+exports.clearQueue = (guild) => {
+    return new Promise(async (resolve, reject) => {
+
+        if (guild.playing === -1) {
+            guild.queue.length = 0;
+        }
+        else {
+            guild.queue = [guild.queue[guild.playing]];
+            guild.playing = 0;
+        }
+
+        resolve(true);
+
+    });
+}
+
 
 async function cleanMusicDirectory(guild) {
     return new Promise(async (resolve, reject) => {
@@ -162,7 +206,7 @@ async function cleanMusicDirectory(guild) {
         const guildMusicDirectory = path.join(musicDirectory, guild.guildId);
 
         // Prevent read error on already playing stream
-        await stopPlaying(guild);
+        await exports.stopPlaying(guild);
 
         fs.readdir(guildMusicDirectory, (err, files) => {
             if (err) {
@@ -198,6 +242,7 @@ function addGuild(message) {
         guild.queue = [];
         guild.currentVideoDetails;
         guild.playing = -1;
+        guild.paused = false;
         guild.guildId = guildId;
 
         guild.voiceConnection;

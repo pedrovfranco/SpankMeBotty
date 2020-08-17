@@ -9,11 +9,18 @@ module.exports = {
 
 async function execute(message, args) {
     
-    if (music.streamDispatcher.paused) {
-        message.channel.send('Song is already paused');
+    let guild = music.getGuild(message);
+
+    if (guild.queue.length === 0) {
+        message.channel.send('The queue is empty');
+        return;
     }
-    else {
-        music.streamDispatcher.pause(false);
+
+    if (music.pause(guild)) {
         message.channel.send('Paused');
     }
+    else {
+        message.channel.send('Song is already paused');
+    }
+
 }

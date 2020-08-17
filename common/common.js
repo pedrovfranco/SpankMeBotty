@@ -6,6 +6,7 @@ const querystring = require('querystring');
 const httpsProxyAgent = require('https-proxy-agent');
 
 const Emote = require('../database/models/emote');
+const music = require('./music');
 
 exports.client;
 exports.prefix = ',';
@@ -13,6 +14,9 @@ exports.audioFileFormat = 'flac';
 exports.recognitionServiceEndpoint = process.env.NODE_ENV==='production' ? 'https://spank-me-botty.herokuapp.com' : 'http://localhost:' + (5000);
 exports.audioFileCounter = 0;
 exports.twitchToken  = { access_token: '', expires_in: 0, expiration_date: 0, token_type: ''};
+exports.proxyRetryCount = 0;
+
+const proxyMaxRetry = 3;
 
 exports.validObject = (obj) => {
 	return (obj !== undefined && obj !== null);
@@ -99,13 +103,17 @@ exports.initializeCookieJar = () => {
 
 exports.playTTS = async (message, text = '', voice = 'Brian') => {
 
-
 	let ttsAddress = `https://ttsmp3.com/makemp3_new.php`;
 
 	if (text.length >= 3000) {
 		this.alertAndLog(message, 'Message must have less than 3000 characters');
 		return;
 	}
+
+	let guild = music.getGuild(message);
+	guild.playing = -1;
+	await music.stopPlaying(guild);
+	await music.clearQueue(guild);
 
 	axios.post(ttsAddress, querystring.stringify({
 		msg: text,
@@ -149,71 +157,27 @@ exports.playTTS = async (message, text = '', voice = 'Brian') => {
 		if (this.validObject(errorMsg) && errorMsg != '0') {
 			console.log(`${errorMsg}`);
 
-			exports.getNewProxy().then(() => {
-				exports.playTTS(message, text, voice);
-			})
+			if (exports.proxyRetryCount < proxyMaxRetry) {
+				exports.getNewProxy().then(() => {
+
+					exports.proxyRetryCount++;
+
+					exports.playTTS(message, text, voice);
+				})
+			}
+			else {
+				console.log('Proxy retry amount exceed the max value, stopping')
+			}
 
 			return;
 		}
 
-		// let voiceConnection = await message.member.voice.channel.join();
-		// voiceConnection.play(url);
+		exports.proxyRetryCount = 0;
 
 		// Use Axios to download the resulting mp3 file
-		axios({
-			url,
-			method: 'GET',
-			responseType: 'stream',
-			headers: {
-				"accept": "audio/mpeg",
-			},
+		let voiceConnection = await message.member.voice.channel.join();
+		voiceConnection.play(url);
 
-		})
-		.then( (res) => {
-
-			const statusCode = res.status;
-
-			let error;
-			if (statusCode !== 200) {
-				error = new Error('Request Failed.\n' + `Status Code: ${statusCode}`);
-			}
-
-			if (error) {
-				console.error(error.message);
-				return;
-			}
-
-			let filePath = path.join(__dirname, 'tts_files', 'temp.mp3');
-			// fs.writeFileSync(filePath, res.data, { encoding: 'binary'});
-			
-			let outStream = fs.createWriteStream(filePath)
-
-			let promise = new Promise((resolve, reject) => {
-				res.data.pipe(outStream);
-				let error = null;
-				outStream.on('error', err => {
-					error = err;
-					outStream.close();
-					reject(err);
-				});
-				outStream.on('close', () => {
-					if (!error) {
-						resolve(true);
-					}
-				});
-			})
-			.then( async (res) => {
-
-				let voiceConnection = await message.member.voice.channel.join();
-				voiceConnection.play(filePath);
-
-			})
-			.catch( (error) => {
-				console.log(error);
-			})
-
-			return promise;
-		})
 	})
 	.catch((error) => {
 		// handle error
@@ -226,6 +190,8 @@ exports.playTTS = async (message, text = '', voice = 'Brian') => {
 
 
 exports.getNewProxy = () => {
+
+	console.log('Getting new proxy for tts command');
 
 	let url = 'http://pubproxy.com/api/proxy?type=http&https=true&post=true&format=json'; // optinal parameter speed=1-60
 

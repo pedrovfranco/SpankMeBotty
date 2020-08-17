@@ -1,4 +1,6 @@
 const common = require('../common/common');
+const pauseCommand = require('./pause');
+
 
 module.exports = {
 	name: 'stop',
@@ -25,6 +27,7 @@ async function execute(message, args) {
 	}
 
 	if (common.validObject(message.guild.voice.connection.dispatcher)) {
+		pauseCommand.execute(message, []);
 		message.guild.voice.connection.dispatcher.pause();
 		common.alertAndLog(message, "Stopped audio")
 	}
