@@ -48,6 +48,8 @@ async function execute(message, args) {
 
             const $ = cheerio.load(response.data);
 
+            // let lines = response.data.split('\n');
+
             let json = $('body > script:nth-child(16)').html(); // This script tag contains the search results in json
             json = json.split('\n')[1]; // Select second line
             json = json.substr(30); // Remove youtube's js code from the JSON
@@ -56,12 +58,20 @@ async function execute(message, args) {
             const jsonObject = JSON.parse(json);
             let videos = jsonObject['contents']['twoColumnSearchResultsRenderer']['primaryContents']['sectionListRenderer']['contents'];
             let contentIndex;
+            let foundContentIndex = false;
             for (contentIndex = 0; contentIndex < videos.length; contentIndex++) {
 
-                if (videos[contentIndex]['itemSectionRenderer']['contents'][0]['carouselAdRenderer'] === undefined) {
-                    break;
+                // Search for video renderer object
+                for (const item of videos[contentIndex]['itemSectionRenderer']['contents']) {
+                    if (item['videoRenderer'] !== undefined) {
+                        foundContentIndex = true;
+                        break;
+                    }
                 }
 
+                if (foundContentIndex) {
+                    break;
+                }
             }
 
             videos = videos[contentIndex]['itemSectionRenderer']['contents']; // Select search results
@@ -77,6 +87,11 @@ async function execute(message, args) {
 
                 return newElement;
             })
+
+            if (videos.length === 0) {
+                message.channel.send('Video not found');
+                return;
+            }
 
             music.addToQueue(message, videos[0].link);
         })
