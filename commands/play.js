@@ -24,6 +24,11 @@ module.exports = {
 
 async function execute(message, args) {
 
+    if (!common.validObject(message.member) || !common.validObject(message.member.voice) || !common.validObject(message.member.voice.channel)) {
+        common.alertAndLog(message, 'User not in a voice channel!');
+        return;
+    }
+
     const search_query = args.join(' ');
     const expression = /^(https?\:\/\/)?(www\.)?youtube\.com/g;
     
@@ -39,7 +44,7 @@ async function execute(message, args) {
             method: 'GET',
             url: searchLink
         })
-        .then(response => {
+        .then(async response => {
 
             const $ = cheerio.load(response.data);
 
