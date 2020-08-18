@@ -20,7 +20,7 @@ async function execute(message, args) {
     let textStr = message.content.slice(5);
     let ttsAddress = 'https://api.streamelements.com/kappa/v2/speech?voice=Brian&text=' + encodeURIComponent(textStr);
 
-    common.initializeCookieJar();
+    // common.initializeCookieJar();
 
     common.playTTS(message, textStr);
 }

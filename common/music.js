@@ -1,29 +1,38 @@
 const ytdl = require('ytdl-core');
 const path = require('path');
 const fs = require('fs');
+const workerpool = require('workerpool');
 
 const common = require('./common');
-const { info } = require('console');
 
 exports.guilds = [];
+exports.ytdlOptions = { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 5 * 1024 * 1024 }; // Buffer size of 5 MB
 
 const musicDirectory = path.join(__dirname, '..', 'music_files');
-const ytdlOptions = { filter: 'audioonly', quality: 'highestaudio'};
+const pool = workerpool.pool(path.join(__dirname, 'music_worker.js'), {maxWorkers: 4, workerType: 'thread'});
 
-exports.addToQueue = async (message, link) => {
+exports.addToQueue = async (message, search_query) => {
 
     addGuild(message);
 
     const guildId = message.guild.id;
     let guild = exports.guilds[guildId];
 
-    ytdl.getInfo(link, ytdlOptions)
-    .then( async info => {
-        guild.queue.push({ link: link, info: info.videoDetails, playing: false });
+    pool.exec('getSong', [search_query])
+    .then(result => {
+
+        let info = result;
+
+        if (info === null) {
+            message.channel.send('Video not found');
+            return;
+        }
+
+        guild.queue.push({ link: info.videoDetails.video_url, info: info.videoDetails, playing: false });
 
         // Not playing
         if (guild.playing === -1) {
-            return playNextSong(guild);
+            playNextSong(guild);
         }
 
     })
@@ -54,26 +63,28 @@ async function playNextSong(guild) {
 
                 guild.voiceConnection = await guild.message.member.voice.channel.join();
 
-                await cleanMusicDirectory(guild)
-                .catch(err => {
-                    reject(err);
-                });
+                // await cleanMusicDirectory(guild)
+                // .catch(err => {
+                //     reject(err);
+                // });
 
-                guild.currentStream = await ytdl(link, ytdlOptions);
+                guild.currentStream = await ytdl(link, exports.ytdlOptions);
                 guild.currentVideoDetails = video.info;
 
-                const guildMusicDirectory = path.join(musicDirectory, guild.guildId);
-                fs.mkdirSync(guildMusicDirectory, { recursive: true });
+                guild.message.channel.send('Playing: ' + video.info.title);
 
-                const filepath = path.join(guildMusicDirectory, guild.currentVideoDetails.videoId + '.webm')
-                let videoWritableStream = fs.createWriteStream(filepath);
-                let stream = guild.currentStream.pipe(videoWritableStream);
+                // const guildMusicDirectory = path.join(musicDirectory, guild.guildId);
+                // fs.mkdirSync(guildMusicDirectory, { recursive: true });
 
-                stream.on('finish', function () {
+                // const filepath = path.join(guildMusicDirectory, guild.currentVideoDetails.videoId + '.webm')
+                // let videoWritableStream = fs.createWriteStream(filepath);
+                // let stream = guild.currentStream.pipe(videoWritableStream);
 
-                    guild.currentStream = fs.createReadStream(filepath);
+                // stream.on('finish', function () {
 
-                    guild.streamDispatcher = guild.voiceConnection.play(guild.currentStream);
+                //     guild.currentStream = fs.createReadStream(filepath);
+
+                guild.streamDispatcher = guild.voiceConnection.play(guild.currentStream/* , { highWaterMark: 1 } */);
                     guild.streamDispatcher.guild = guild;
 
                     guild.streamDispatcher.on('error', err => {
@@ -85,7 +96,7 @@ async function playNextSong(guild) {
                     })
 
                     resolve(guild.streamDispatcher);
-                });
+                // });
             }
             else {
 
@@ -176,7 +187,8 @@ exports.stopPlaying = (guild) => {
         }
 
         if (guild.currentStream !== undefined) {
-            await guild.currentStream.close();
+            await guild.currentStream.pause();
+            await guild.currentStream.destroy();
         }
 
         resolve(true);
