@@ -46,12 +46,13 @@ async function execute(message, args) {
         })
         .then(async response => {
 
-            const $ = cheerio.load(response.data);
+            // const $ = cheerio.load(response.data);
+            let lines = response.data.split('\n');
 
-            // let lines = response.data.split('\n');
+            // let json = $('body > script:nth-child(16)').html(); // This script tag contains the search results in json
+            let json = lines[190];
 
-            let json = $('body > script:nth-child(16)').html(); // This script tag contains the search results in json
-            json = json.split('\n')[1]; // Select second line
+            // json = json.split('\n')[1]; // Select second line
             json = json.substr(30); // Remove youtube's js code from the JSON
             json = json.substr(0, json.length - 1); // Remove last character which is a semicolon
 

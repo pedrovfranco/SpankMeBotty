@@ -10,7 +10,7 @@ exports.guilds = [];
 const musicDirectory = path.join(__dirname, '..', 'music_files');
 const ytdlOptions = { filter: 'audioonly', quality: 'highestaudio'};
 
-exports.addToQueue = (message, link) => {
+exports.addToQueue = async (message, link) => {
 
     addGuild(message);
 
@@ -18,7 +18,7 @@ exports.addToQueue = (message, link) => {
     let guild = exports.guilds[guildId];
 
     ytdl.getInfo(link, ytdlOptions)
-    .then( info => {
+    .then( async info => {
         guild.queue.push({ link: link, info: info.videoDetails, playing: false });
 
         // Not playing
