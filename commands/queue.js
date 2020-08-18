@@ -45,10 +45,15 @@ async function execute(message, args) {
 
         result += title;
 
+        let time = '(';
+
         if (vid.playing) {
-            const time = '(' + common.formatSeconds(Math.round(parseInt(guild.streamDispatcher.streamTime) / 1000)) + '/' + common.formatSeconds(guild.currentVideoDetails.lengthSeconds) + ')';
-            result += ' ' + time;
+            time += common.formatSeconds(Math.round(parseInt(guild.streamDispatcher.streamTime) / 1000)) + '/';
         }
+
+        time += common.formatSeconds(vid.info.lengthSeconds) + ')';
+
+        result += ' ' + time;
 
         if (i < guild.queue.length - 1) {
             result += '\n';
