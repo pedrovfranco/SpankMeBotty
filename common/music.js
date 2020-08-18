@@ -96,10 +96,10 @@ async function playNextSong(guild) {
         }
         catch (exception) {
             if (exception.message.startsWith('No video id found')) {
-                common.alertAndLog(message, "Link must be a video");
+                common.alertAndLog(guild.message, "Link must be a video");
             }
             else {
-                common.alertAndLog(message, "Failed to play, the link is probably broken");
+                common.alertAndLog(guild.message, "Failed to play, the link is probably broken");
             }
 
             reject(exception);

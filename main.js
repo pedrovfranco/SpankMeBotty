@@ -10,7 +10,7 @@ const inygonAnnouncer = require('./routines/inygonAnnouncer');
 
 let client;
 
-if (require('dotenv').config().error) {
+if (require('dotenv').config().error && process.env.NODE_ENV !== 'production') {
 	console.error("Failed to load .env file!");
 }
 
