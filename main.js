@@ -2,6 +2,10 @@ const Discord = require('discord.js');
 const fs = require('fs');
 const path  = require('path');
 
+if (require('dotenv').config().error && process.env.NODE_ENV !== 'production') {
+	console.error("Failed to load .env file!");
+}
+
 require('./database/mongo');
 const common = require('./common/common')
 const commands = require('./commands');
@@ -10,9 +14,6 @@ const inygonAnnouncer = require('./routines/inygonAnnouncer');
 
 let client;
 
-if (require('dotenv').config().error && process.env.NODE_ENV !== 'production') {
-	console.error("Failed to load .env file!");
-}
 
 function printEnvVariables() {
 	console.log('NODE_ENV=' + process.env.NODE_ENV);

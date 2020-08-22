@@ -30,7 +30,7 @@ exports.printCommand = (message) => {
 
 
 exports.sendEmote = (message, emoteName) => {
-	Emote.findOne({ name: emoteName }).orFail()
+	Emote.findOne({ name: emoteName, guildId: message.guild.id }).orFail()
 	.then(result => {
 
 		let filepath = path.join('emotes', result.filename);

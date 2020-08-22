@@ -93,6 +93,7 @@ function handleRegister(message, args) {
             const newEmote = new Emote({
                 name: emoteName,
                 data: data,
+                guildId: message.guild.id,
                 filename: emoteName + '.' + imageInfo.ext,
                 creator: message.author.tag,
             });
@@ -150,24 +151,29 @@ function handleRemove(message, args) {
 }
 
 function handleList(message, args) {
-  
-    Emote.find()
+
+    Emote.find({guildId: message.guild.id})
     .then(mappings => {
 
-        let list = 'Emotes:\n\`';
+        let list = 'Emotes:';
 
-        for (let i = 0; i < mappings.length; i++) {
-            const entry = mappings[i];
+        if (mappings.length !== 0) {
 
-            list += entry.name;
+            list += '\n\`'
+            for (let i = 0; i < mappings.length; i++) {
+                const entry = mappings[i];
 
-            if (i < mappings.length-1) {
-                list += '\n';
+                list += entry.name;
+
+                if (i < mappings.length-1) {
+                    list += '\n';
+                }
+
             }
 
+            list += '\`'
         }
 
-        list += '\`'
 
         message.channel.send(list);
 
@@ -178,6 +184,4 @@ function handleList(message, args) {
         message.channel.send("Oops, something went wrong!");
 
     })
-  
-
 }
