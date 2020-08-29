@@ -8,8 +8,10 @@ const common = require('./common');
 exports.guilds = [];
 exports.ytdlOptions = { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 5 * 1024 * 1024 }; // Buffer size of 5 MB
 
+const DEBUG_WORKER = true;
 const musicDirectory = path.join(__dirname, '..', 'music_files');
 const pool = workerpool.pool(path.join(__dirname, 'music_worker.js'), {maxWorkers: 4, workerType: 'thread'});
+
 
 exports.addToQueue = async (message, search_query) => {
 
@@ -18,27 +20,35 @@ exports.addToQueue = async (message, search_query) => {
     const guildId = message.guild.id;
     let guild = exports.guilds[guildId];
 
-    pool.exec('getSong', [search_query])
-    .then(result => {
+    // if (DEBUG_WORKER) {
+        const worker = require('./music_worker');
 
-        let info = result;
+        worker.getSong(search_query);
+    // }
+    // else {
+    //     pool.exec('getSong', [search_query])
+    //     .then(result => {
 
-        if (info === null) {
-            message.channel.send('Video not found');
-            return;
-        }
+    //         let info = result;
 
-        guild.queue.push({ link: info.videoDetails.video_url, info: info.videoDetails, playing: false });
+    //         if (info === null) {
+    //             message.channel.send('Video not found');
+    //             return;
+    //         }
 
-        // Not playing
-        if (guild.playing === -1) {
-            playNextSong(guild);
-        }
+    //         guild.queue.push({ link: info.videoDetails.video_url, info: info.videoDetails, playing: false });
 
-    })
-    .catch(err => {
-        console.log(err);
-    });
+    //         // Not playing
+    //         if (guild.playing === -1) {
+    //             playNextSong(guild);
+    //         }
+
+    //     })
+    //     .catch(err => {
+    //         console.log(err);
+    //     });
+    // }
+
 }
 
 
