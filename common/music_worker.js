@@ -83,12 +83,12 @@ async function getSong(search_query) {
 
         try {
             
-            let result = await (await ytsr(search_query, { safeSearch: false, limit: 1 }));
-
-            if (result.items.length === 0)
+            let result = await (await ytsr(search_query, { safeSearch: false, limit: 20})).items.filter(value => value.type === 'video');
+            
+            if (result.length === 0)
                 return null;
 
-            link = result.items[0].link;
+            link = result[0].link;
         }
         catch (err) {
             console.log(err);
