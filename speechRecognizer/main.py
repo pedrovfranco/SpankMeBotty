@@ -12,18 +12,14 @@ app = flask.Flask(__name__)
 @app.route('/ping', methods=['GET'])
 def ping():
 
-    print('alive!')
     return ("pong")
 
 
 @app.route('/recognize/<filename>', methods=['GET'])
 def serveRecognizeAudioFile(filename):
 
-    print('get request')
-
     response = recognizeAudioFile(filename)
-    print(filename + ':')
-    print(response.__dict__)
+    print(response.__dict__, flush=True)
     return flask.jsonify(response.__dict__)
 
 if __name__ == '__main__':

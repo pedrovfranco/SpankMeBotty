@@ -6,21 +6,17 @@ from constants import RecognizeResultType, recognizer_keywords
 
 tmp_folder = "tmp_audio_files"
 adaptation_folder = "adaptation"
-flag_clean_temp_files = True
+flag_clean_temp_files = False
 
-acoustic_parameters_directory = path.join(path.dirname(path.realpath(__file__)), adaptation_folder, 'en-us')
-language_model_file = path.join(path.dirname(path.realpath(__file__)), adaptation_folder, 'en-us.lm.bin')
-phoneme_dictionary_file = path.join(path.dirname(path.realpath(__file__)), adaptation_folder, 'cmudict-en-us.dict')
+acoustic_parameters_directory = path.join(path.dirname(__file__), adaptation_folder, 'custom', 'en-us')
+language_model_file = path.join(path.dirname(__file__), adaptation_folder, 'en-us.lm.bin')
+phoneme_dictionary_file = path.join(path.dirname(__file__), adaptation_folder, 'cmudict-en-us.dict')
 
 print('recognizer_keywords:')
 print(recognizer_keywords)
 
 def recognizeAudioFile(filename):
-	print('before AUDIO_FILE')
-	AUDIO_FILE = path.join(path.dirname(path.realpath(__file__)), tmp_folder + '/' + filename)
-
-	print('AUDIO_FILE')
-	print(AUDIO_FILE)
+	AUDIO_FILE = path.join(path.dirname(__file__), tmp_folder, filename)
 
 	# use the audio file as the audio source
 	r = sr.Recognizer()
@@ -33,7 +29,8 @@ def recognizeAudioFile(filename):
 	# recognize speech using Sphinx
 	try:
 		result.success = True
-		result.message = r.recognize_sphinx(audio, keyword_entries=recognizer_keywords)
+		# keyword_entries=recognizer_keywords
+		result.message = r.recognize_sphinx(audio, language=(acoustic_parameters_directory, language_model_file, phoneme_dictionary_file))
 	except sr.UnknownValueError:
 		result.success = False
 		result.message = "Sphinx could not understand audio"
