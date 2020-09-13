@@ -102,8 +102,8 @@ exports.checkForStream = async () => {
                     announceStr += user.name + " ";
                 }
 
-                // Send announceStr to spank_me_botty channel
-                common.client.channels.fetch('728239336214102116')
+                // Send announceStr to announcements channel
+                common.client.channels.fetch('754500520936341576')
                     .then(channel => channel.send(announceStr));
             })
         }
