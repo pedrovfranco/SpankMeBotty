@@ -6,6 +6,8 @@ const common = require('../common/common');
 
 const Emote = require('../database/models/emote');
 
+const maxFileSize = 8*1024*1024;
+
 module.exports = {
 	name: 'emoteconfig',
     description: 'Manage emotes',
@@ -80,6 +82,11 @@ function handleRegister(message, args) {
 
         try {
             let data = fs.readFileSync(filepath);
+
+            if (data.length > maxFileSize) {
+                message.channel.send("The image is too big!");
+                return;
+            }
 
             const imageInfo = imageType(data);
 
