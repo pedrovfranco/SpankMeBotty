@@ -34,4 +34,4 @@ RUN npm update
 # Add your source files
 COPY . .
 
-CMD ["dumb-init", "npm", "start"]
+# CMD ["dumb-init", "npm", "start"]
