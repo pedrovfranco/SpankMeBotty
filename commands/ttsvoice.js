@@ -9,15 +9,15 @@ module.exports = {
     execute
 };
 
-async function execute(message, args) {
+async function execute(interaction, args) {
 
-    if (!common.validObject(message.member.voice.channel)) {
-        common.alertAndLog(message, 'User not in a voice channel!');
+    if (!common.validObject(interaction.member.voice.channel)) {
+        common.alertAndLog(interaction, 'User not in a voice channel!');
         return;
     }
 
     let textStr = args.slice(1).join(' ');
     console.log(textStr);
 
-    common.playTTS(message, textStr, args[0]);
+    common.playTTS(interaction, textStr, args[0]);
 }

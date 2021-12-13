@@ -1,26 +1,36 @@
+const { SlashCommandBuilder } = require('@discordjs/builders');
+
 const music = require('../common/music');
 
-module.exports = {
-    name: 'resume',
-    description: 'Resumes the music stream',
-    args: false,
-    alias: 'r',
-    execute,
-};
+// module.exports = {
+//     name: 'resume',
+//     description: 'Resumes the music stream',
+//     args: false,
+//     alias: 'r',
+//     execute,
+// };
 
-async function execute(message, args) {
 
-    let guild = music.getGuild(message);
+module.exports = {	
+	data: new SlashCommandBuilder()
+		.setName('resume')
+		.setDescription('Resumes the music stream')
+		,
 
-    if (guild.queue.length === 0) {
-        message.channel.send('The queue is empty');
-        return;
-    }
+    async execute(interaction) {
 
-    if (music.resume(guild)) {
-        message.channel.send('Playing');
-    }
-    else {
-        message.channel.send('Song is already playing');
+        let guild = music.getGuild(interaction);
+
+        if (guild.queue.length === 0) {
+            interaction.reply('The queue is empty');
+            return;
+        }
+
+        if (music.resume(guild)) {
+            interaction.reply('Resumed');
+        }
+        else {
+            interaction.reply('The song is already playing');
+        }
     }
 }

@@ -1,0 +1,6 @@
+{
+  "name": "spank-me-botty-docker",
+  "description": "A simple docker heroku example for nodejs",
+  "image": "heroku/nodejs",
+  "addons": []
+}

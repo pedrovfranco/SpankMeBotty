@@ -1,26 +1,40 @@
+const { SlashCommandBuilder } = require('@discordjs/builders');
+
 const common = require('../common/common');
 const music = require('../common/music');
 
 
-module.exports = {
-    name: 'play',
-    description: 'Plays music from youtube',
-    args: true,
-    minargs: 1,
-    alias: ['p'],
-    usage: '<youtube_link_or_search_query>',
-    execute,
-};
+// module.exports = {
+//     name: 'play',
+//     description: 'Plays music from youtube',
+//     args: true,
+//     minargs: 1,
+//     alias: ['p'],
+//     usage: '<youtube_link_or_search_query>',
+//     execute,
+// };
 
 
-async function execute(message, args) {
+module.exports = {	
+	data: new SlashCommandBuilder()
+		.setName('play')
+		.setDescription('Plays music from youtube')
+        .addStringOption(option => option
+            .setName('youtube_video')
+            .setDescription('Either a youtube link or the name of the video to search for')
+			.setRequired(true)
+		),
 
-    if (!common.validObject(message.member) || !common.validObject(message.member.voice) || !common.validObject(message.member.voice.channel)) {
-        common.alertAndLog(message, 'User not in a voice channel!');
-        return;
+    async execute(interaction) {
+
+        if (!common.validObject(interaction.member) || !common.validObject(interaction.member.voice) || !common.validObject(interaction.member.voice.channel)) {
+            common.alertAndLog(interaction, 'User not in a voice channel!');
+            return;
+        }
+
+        const search_query = interaction.options.getString('youtube_video');
+
+
+        music.addToQueue(interaction, search_query);
     }
-
-    const search_query = args.join(' ');
-
-    music.addToQueue(message, search_query);
 }

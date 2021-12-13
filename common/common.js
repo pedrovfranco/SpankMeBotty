@@ -1,14 +1,15 @@
-
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios').default;
 const querystring = require('querystring');
 const httpsProxyAgent = require('https-proxy-agent');
+var https = require('https');
 
 const Emote = require('../database/models/emote');
 const music = require('./music');
+const Permission = require('../database/models/permission');
 
-exports.client;
+exports.discordClient = null;
 exports.prefix = ',';
 exports.audioFileFormat = 'flac';
 exports.recognitionServiceEndpoint = process.env.NODE_ENV==='production' ? 'https://spank-me-botty.herokuapp.com' : 'http://localhost:' + (5000);
@@ -16,21 +17,23 @@ exports.audioFileCounter = 0;
 exports.twitchToken  = { access_token: '', expires_in: 0, expiration_date: 0, token_type: ''};
 exports.proxyRetryCount = 0;
 
+const useProxy = false
 const proxyMaxRetry = 3;
 
 exports.validObject = (obj) => {
 	return (obj !== undefined && obj !== null);
 }
 
-exports.printCommand = (message) => {
-	let msg = message.content.slice(exports.prefix.length);
+exports.printCommand = (interaction) => {
+	let msg = interaction.content.slice(exports.prefix.length);
 
 	console.log('Received command: ' + msg);
 }
 
 
-exports.sendEmote = (message, emoteName) => {
-	Emote.findOne({ name: emoteName, guildId: message.guild.id }).orFail()
+exports.sendEmote = (interaction, emoteName, replyOnFail = false) => {
+	
+	Emote.findOne({ name: emoteName, guildId: interaction.guild.id }).orFail()
 	.then(result => {
 
 		let filepath = path.join('emotes', result.filename);
@@ -38,16 +41,13 @@ exports.sendEmote = (message, emoteName) => {
 		if (!fs.existsSync(filepath))
 			fs.writeFileSync(filepath, result.data, {encoding: 'binary'});
 
-		let cleanTag = message.author.tag.substr(0, message.author.tag.indexOf('#'));
 
-		message.channel.send(cleanTag, {
+		interaction.reply({
 			files: [{
 				attachment: filepath,
-			  }]
+			}]
 		})
 		.then((res) => {
-			message.delete()
-			.catch(console.error);
 		})
 		.catch((err) => {
 			console.log('Failed to send ' + emoteName);
@@ -55,16 +55,48 @@ exports.sendEmote = (message, emoteName) => {
 		});
 	})
 	.catch(err => {
+		if (replyOnFail)
+			interaction.reply('That emote does not exist! To add it use the /emoteconfig register command.');
 	})
 
 }
 
-exports.alertAndLog = (message, text) => {
-	message.channel.send(text);
+// exports.sendEmote = (message, emoteName) => {
+// 	Emote.findOne({ name: emoteName, guildId: message.guild.id }).orFail()
+// 	.then(result => {
+
+// 		let filepath = path.join('emotes', result.filename);
+		
+// 		if (!fs.existsSync(filepath))
+// 			fs.writeFileSync(filepath, result.data, {encoding: 'binary'});
+
+// 		let cleanTag = message.member.user.tag.substr(0, interaction.member.user.tag.indexOf('#'));
+
+// 		message.channel.send(cleanTag, {
+// 			files: [{
+// 				attachment: filepath,
+// 			  }]
+// 		})
+// 		.then((res) => {
+// 			message.delete()
+// 			.catch(console.error);
+// 		})
+// 		.catch((err) => {
+// 			console.log('Failed to send ' + emoteName);
+// 			console.error(err);
+// 		});
+// 	})
+// 	.catch(err => {
+// 	})
+
+// }
+
+exports.alertAndLog = (interaction, text) => {
+	interaction.reply(text);
 	console.log(text);
 }
 
-exports.printUsage = (message, command) => {
+exports.printUsage = (interaction, command) => {
 	if (command.usage) {
 		let reply = `\nUsage:`;
 
@@ -74,120 +106,146 @@ exports.printUsage = (message, command) => {
 			reply += `\n\`${exports.prefix}${command.name} ${line}\``;
 		}
 
-		return message.channel.send(reply);
+		return interaction.channel.send(reply);
 	}
 }
 
-exports.initializeCookieJar = () => {
+// This function currently calls GET requests on the  "https://api.streamelements.com/kappa/v2/speech" API.
+// If for any reason this API stops working we can also use a post request with the following json body "{voice: voice, text: text}"
+// to the link "https://streamlabs.com/polly/speak"
+exports.playTTS = async (interaction, text = '', voice = 'Brian', callback = null) => {
 
-	const axios = require('axios').default;
+    Permission.find({guildId: interaction.guild.id, type: 'tts'})
+    .then(async mappings => {
 
-	const axiosCookieJarSupport = require('axios-cookiejar-support').default;
-	const tough = require('tough-cookie');
+        let roles = mappings.map(x => x.roleName);
+        let hasRole = interaction.member.roles.cache.some(role => roles.includes(role.name));
 
-	const instance = axios.create({
-		// WARNING: This value will be ignored.
-		jar: new tough.CookieJar(),
-	});
+        console.log('TTS permissions = ' + JSON.stringify(roles));
 
-	// Set directly after wrapping instance.
-	axiosCookieJarSupport(instance);
-	instance.defaults.jar = new tough.CookieJar();
+		let hasPermission = (hasRole || roles.length === 0);
 
-	exports.axios = instance;
+        if (hasPermission) {
+            let streamElementsFlag = true;
+			let ttsAddress;
 
-	// exports.axios.defaults.jar.setCookieSync('__cfduid=da3bcda890e0e8767ff80d6d24086adce1595192330', ttsAddress);
-	// let cookie = exports.axios.defaults.jar.getCookieStringSync(ttsAddress);
-}
+			if (streamElementsFlag) {
+				let guild = music.getGuild(interaction);
+				ttsAddress = 'https://api.streamelements.com/kappa/v2/speech?voice=' + encodeURIComponent(voice) + '&text=' + encodeURIComponent(text);
 
+				console.log('ttsAddress = ' + ttsAddress);
 
-exports.playTTS = async (message, text = '', voice = 'Brian') => {
-
-	let ttsAddress = `https://ttsmp3.com/makemp3_new.php`;
-
-	if (text.length >= 3000) {
-		this.alertAndLog(message, 'Message must have less than 3000 characters');
-		return;
-	}
-
-	let guild = music.getGuild(message);
-	guild.playing = -1;
-	await music.stopPlaying(guild);
-	await music.clearQueue(guild);
-
-	axios.post(ttsAddress, querystring.stringify({
-		msg: text,
-		lang: voice,
-		source: 'ttsmp3'
-	}), {
-
-		headers: {
-			"Content-Type": "application/x-www-form-urlencoded"
-		},
-		
-		// proxy: (this.validObject(exports.proxy)) ? {
-		// 	host: exports.proxy.host,
-		// 	port: exports.proxy.port,
-		// }
-		// : null
-
-		httpsAgent: (this.validObject(exports.proxy)) ? new httpsProxyAgent(`http://${exports.proxy.host}:${exports.proxy.port}`) : null
-
-
-	}).then( async (res) => {
-
-		const statusCode = res.status;
-		const contentType = res.headers['content-type'];
-
-		let error;
-		if (statusCode !== 200) {
-			error = new Error('Request Failed.\n' + `Status Code: ${statusCode}`);
-		} else if (!/^application\/json/.test(contentType)) {
-			error = new Error('Invalid content-type.\n' + `Expected application/json but received ${contentType}`);
-		}
-		if (error) {
-			console.error(error.message);
-			return;
-		}
-
-		let url = res.data["URL"];
-		let errorMsg = res.data["Error"];
-		// console.log(res.data);
-
-		if (this.validObject(errorMsg) && errorMsg != '0') {
-			console.log(`${errorMsg}`);
-
-			if (exports.proxyRetryCount < proxyMaxRetry) {
-				exports.getNewProxy().then(() => {
-
-					exports.proxyRetryCount++;
-
-					exports.playTTS(message, text, voice);
-				})
+				https.get(ttsAddress, (res) => {
+					if (res.statusCode != 200) {
+						callback({
+							statusCode: res.statusCode,
+							statusMessage: res.statusMessage
+						});
+					}
+					else
+						music.playTTS(interaction, guild, res, callback);
+				
+				});
 			}
 			else {
-				console.log('Proxy retry amount exceed the max value, stopping')
+				ttsAddress = `https://ttsmp3.com/makemp3_new.php`;	
+
+
+				if (text.length >= 3000) {
+					this.alertAndLog(interaction, 'Message must have less than 3000 characters');
+					return;
+				}
+
+				let guild = music.getGuild(interaction);
+				guild.playing = -1;
+				await music.stopPlaying(guild);
+				// await music.clearQueue(guild);
+
+				axios.post(ttsAddress, querystring.stringify({
+					msg: text,
+					lang: voice,
+					source: 'ttsmp3'
+				}), {
+
+					headers: {
+						"Content-Type": "application/x-www-form-urlencoded"
+					},
+					
+					// proxy: (this.validObject(exports.proxy)) ? {
+					// 	host: exports.proxy.host,
+					// 	port: exports.proxy.port,
+					// }
+					// : null
+
+					httpsAgent: (this.validObject(exports.proxy)) ? new httpsProxyAgent(`http://${exports.proxy.host}:${exports.proxy.port}`) : null
+
+				}).then( async (res) => {
+
+					const statusCode = res.status;
+					const contentType = res.headers['content-type'];
+
+					let error;
+					if (statusCode !== 200) {
+						error = new Error('Request Failed.\n' + `Status Code: ${statusCode}`);
+					} else if (!/^application\/json/.test(contentType)) {
+						error = new Error('Invalid content-type.\n' + `Expected application/json but received ${contentType}`);
+					}
+					if (error) {
+						console.error(error.message);
+						return;
+					}
+
+					let url = res.data["URL"];
+					let errorMsg = res.data["Error"];
+					// console.log(res.data);
+
+					if (this.validObject(errorMsg) && errorMsg != '0') {
+						console.log(`${errorMsg}`);
+
+						if (useProxy) {
+							if (exports.proxyRetryCount < proxyMaxRetry) {
+								exports.getNewProxy().then(() => {
+				
+									exports.proxyRetryCount++;
+				
+									exports.playTTS(interaction, text, voice);
+								})
+							}
+							else {
+								console.log('Proxy retry amount exceed the max value, stopping')
+							}
+						}
+						else {
+							exports.restartAllDynos()
+						}
+						
+						return;
+					}
+
+					exports.proxyRetryCount = 0;
+
+					// Use Axios to download the resulting mp3 file
+					let voiceConnection = await interaction.member.voice.channel.join();
+					voiceConnection.play(url);
+
+				})
+				.catch((error) => {
+					// handle error
+
+					if (this.validObject(error.response)) {
+						console.log(`${error.response.status}: ${error.response.statusText}`);
+					}
+				});
 			}
-
-			return;
-		}
-
-		exports.proxyRetryCount = 0;
-
-		// Use Axios to download the resulting mp3 file
-		let voiceConnection = await message.member.voice.channel.join();
-		voiceConnection.play(url);
-
-	})
-	.catch((error) => {
-		// handle error
-
-		if (this.validObject(error.response)) {
-			console.log(`${error.response.status}: ${error.response.statusText}`);
-		}
-	});
+        }
+		else
+			return false;
+    })
+    .catch(err => {
+        console.log(err);
+        interaction.channel.send("Oops, something went wrong!");
+    })
 }
-
 
 exports.getNewProxy = () => {
 
@@ -282,4 +340,56 @@ exports.formatSeconds = (input) => {
 	result += seconds;
 
 	return result;
+}
+
+exports.restartAllDynos = () => {
+	axios.delete('https://api.heroku.com/apps/spank-me-botty/dynos', {
+
+		headers: {
+			"Content-Type": "application/json",
+			"Accept": "application/vnd.heroku+json; version=3",
+			"Authorization": "Bearer " + process.env.HEROKU_API_AUTH_TOKEN
+		}
+
+	}).then( async (res) => {
+
+		const statusCode = res.status;
+		const contentType = res.headers['content-type'];
+
+		let error;
+		if (statusCode !== 200) {
+			error = new Error('Request Failed.\n' + `Status Code: ${statusCode}`);
+		} else if (!/^application\/json/.test(contentType)) {
+			error = new Error('Invalid content-type.\n' + `Expected application/json but received ${contentType}`);
+		}
+		if (error) {
+			console.error(error.message);
+			return;
+		}
+
+		console.log('Restarting all dynos remotely...')
+		
+	})
+}
+
+exports.initializeCookieJar = () => {
+
+	const axios = require('axios').default;
+
+	const axiosCookieJarSupport = require('axios-cookiejar-support').default;
+	const tough = require('tough-cookie');
+
+	const instance = axios.create({
+		// WARNING: This value will be ignored.
+		jar: new tough.CookieJar(),
+	});
+
+	// Set directly after wrapping instance.
+	axiosCookieJarSupport(instance);
+	instance.defaults.jar = new tough.CookieJar();
+
+	exports.axios = instance;
+
+	// exports.axios.defaults.jar.setCookieSync('__cfduid=da3bcda890e0e8767ff80d6d24086adce1595192330', ttsAddress);
+	// let cookie = exports.axios.defaults.jar.getCookieStringSync(ttsAddress);
 }

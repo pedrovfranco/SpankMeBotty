@@ -1,22 +1,23 @@
+const { SlashCommandBuilder } = require('@discordjs/builders');
 const common = require('../common/common');
-const fs = require('fs');
 const emoteConfig = require('./emoteconfig')
 
 module.exports = {
-	name: 'emote',
-    description: 'Prints an emote to the text channel',
-    usage: '<emote_name>',
-	execute,
+	data: new SlashCommandBuilder()
+		.setName('emote')
+		.setDescription('Prints an emote to the text channel')
+        .addStringOption(option =>
+            option.setName('emote_name')
+                .setDescription('The name of the emote')),
+    
+	async execute(interaction) {
+        let emoteName = interaction.options.getString('emote_name');
+
+		if (emoteName == null) {
+			emoteConfig.handleList(interaction);
+		}
+		else {
+			common.sendEmote(interaction, emoteName, true);
+		}
+	}
 };
-
-async function execute(message, args) {
-
-	if (args.length === 0) {
-		emoteConfig.handleList(message, args);
-	}
-	else if (args.length === 1) {
-
-		common.sendEmote(message, args[0]);
-
-	}
-}

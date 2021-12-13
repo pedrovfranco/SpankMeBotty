@@ -2,6 +2,9 @@
   "name": "spank-me-botty",
   "version": "1.0.0",
   "description": "",
+  "engines": {
+    "node": ">=17.0.1"
+  },
   "main": "main.js",
   "scripts": {
     "start": "node main.js",
@@ -19,20 +22,23 @@
   },
   "homepage": "https://github.com/pedrovfranco/SpankMeBotty#readme",
   "dependencies": {
-    "@discordjs/opus": "^0.3.2",
-    "axios": "^0.19.2",
+    "@discordjs/builders": "^0.7.0",
+    "@discordjs/opus": "^0.4.0",
+    "@discordjs/rest": "^0.1.0-canary.0",
+    "@discordjs/voice": "^0.7.5",
+    "axios": "^0.24.0",
     "cheerio": "^1.0.0-rc.3",
-    "discord.js": "^12.3.0",
-    "dotenv": "^8.2.0",
+    "discord-api-types": "^0.24.0",
+    "discord.js": "^13.3.1",
+    "dotenv": "^10.0.0",
     "express": "^4.17.1",
-    "ffmpeg-static": "^4.2.5",
     "https-proxy-agent": "^5.0.0",
     "image-downloader": "^4.0.1",
     "image-type": "^4.1.0",
-    "mongoose": "^5.9.23",
-    "sodium": "^3.0.2",
+    "mongoose": "^6.0.12",
     "workerpool": "^6.0.0",
-    "ytdl-core": "^3.2.1",
-    "ytsr": "^0.1.21"
+    "sodium": "^3.0.2",
+    "ytdl-core": "^4.9.1",
+    "ytsr": "^3.5.3"
   }
 }

@@ -1,9 +1,13 @@
+const { SlashCommandBuilder } = require('@discordjs/builders');
+const music = require('../common/music');
 
 module.exports = {
-	name: 'ping',
-	description: 'Ping!',
-	execute(message, args) {
+	data: new SlashCommandBuilder()
+		.setName('ping')
+		.setDescription('Replies with Pong!'),
 
-		message.channel.send('Pong!');
+	async execute(interaction) {
+		await interaction.reply('Pong!');
+		// music.printGuild(interaction);
 	},
 };

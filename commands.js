@@ -1,77 +1,46 @@
-
 const common = require('./common/common');
 
-const Emote = require('./database/models/emote');
-
-// Flags
 const flagExactEmoteMatch = true;
+const alertCommandDeprecation = true;
 
-let client;
+exports.registerBot = function registerBot(client) {
 
-exports.registerBot = function registerBot(inputBot) {
-	client = inputBot;
-
-	client.on('message', (message) => {
-		
-		if (message.author.bot)
+	client.on('interactionCreate', async interaction => {
+		if (!interaction.isCommand() || interaction.member.user.bot)
 			return;
 
-		if (!message.content.startsWith(common.prefix) && flagExactEmoteMatch) {
-			handleExactEmoteMessage(message);
-			return;
-		}
+		console.log('Received command ' + interaction.commandName);
 
-		const cleanMsg = message.content.slice(common.prefix.length);
-		const args = cleanMsg.split(/\s+/g);
-		const commandName = args.shift().toLowerCase();
-
-		// Find command with name or alias
-		const command = client.commands.find(element => {
-
-			if (element.name === commandName)
-				return true;
-
-			if (element.alias === undefined)
-				return false;
-
-			if (element.alias === commandName )
-				return true;
-
-			if (Array.isArray(element.alias) && element.alias.find(alias => alias === commandName))
-				return true;
-		});
-
-		if (command === undefined) {
-			console.log('Unknown command: ' + commandName);
-			return;
-		}
-
-		common.printCommand(message);
-
-		if (command.disabled) {
-			common.alertAndLog(message, 'That command is disabled!');
-			return;
-		}
-
-		if ((command.args && !args.length) || (command.minargs && args.length < command.minargs)) {
-	
-			common.printUsage(message, command);
-		
-			return;
-		}
+		const command = client.commands.get(interaction.commandName);
 
 		try {
-			command.execute(message, args);
+			await command.execute(interaction);
 		} catch (error) {
 			console.error(error);
-			message.reply('there was an error trying to execute that command!');
+			await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
 		}
 
 	});
-}
 
-async function handleExactEmoteMessage(message) {
+	client.on('messageCreate', async message => {
 
-	common.sendEmote(message, message.content);
+		if (message?.member == null || message.member.user.bot)
+			return;
 
+
+		if (message.content.startsWith(common.prefix)) {
+
+			if (alertCommandDeprecation) {
+				message.reply('This style of command is deprecated, please use discord\'s built-in command system by typing \"/\" on the chat instead');
+			}
+
+			return;
+		}
+
+		if (flagExactEmoteMatch) {
+			common.sendEmote(message, message.content, false); // If the message is not an emote name this function should fail gracefully
+			return;
+		}
+
+	});
 }

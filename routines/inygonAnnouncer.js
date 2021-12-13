@@ -103,7 +103,7 @@ exports.checkForStream = async () => {
                 }
 
                 // Send announceStr to announcements channel
-                common.client.channels.fetch('754500520936341576')
+                common.discordClient.channels.fetch('754500520936341576')
                     .then(channel => channel.send(announceStr));
             })
         }

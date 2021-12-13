@@ -1,0 +1,36 @@
+FROM node:17.0.1-alpine3.14
+# FROM node:14-alpine
+
+ENV NODE_ENV production
+
+RUN apk add --no-cache dumb-init
+
+# For the npm package "sodium"
+# RUN apk add --no-cache libsodium
+RUN apk add --no-cache libtool
+RUN apk add --no-cache autoconf
+RUN apk add --no-cache automake
+RUN apk add --no-cache build-base
+RUN apk add --no-cache python3 py3-pip
+
+RUN apk add --no-cache ffmpeg
+RUN apk add --no-cache lame
+RUN apk add --no-cache libmp3lame-dev
+# RUN apk add --no-cache opus
+
+
+EXPOSE 5000
+EXPOSE $PORT
+EXPOSE 80
+EXPOSE 443
+
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+
+RUN npm update
+
+# Add your source files
+COPY . .
+
+CMD ["dumb-init", "npm", "start"]

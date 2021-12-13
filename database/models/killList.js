@@ -5,7 +5,7 @@ const { Schema } = mongoose;
 
 const killListSchema = new Schema(
 	{
-        name: { type: String, required: true, unique: true },
+        tag: { type: String, required: true, unique: true },
 	},
 	{
 		timestamps: false,

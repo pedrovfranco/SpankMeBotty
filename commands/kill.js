@@ -1,32 +1,41 @@
+const { SlashCommandBuilder } = require('@discordjs/builders');
+
 const common = require('../common/common');
 const KillList = require('../database/models/killList');
 
-module.exports = {
-	name: 'kill',
-    description: 'pew pew!',
-    args: true,
-    usage: '<@someone>',
-	execute,
-};
+// module.exports = {
+// 	name: 'kill',
+//     description: 'pew pew!',
+//     args: true,
+//     usage: '<@someone>',
+// 	execute,
+// };
 
-async function execute(message, args) {
+module.exports = {	
+	data: new SlashCommandBuilder()
+		.setName('kill')
+		.setDescription('pew pew!')
+        .addUserOption(option => option
+            .setName('target')
+            .setDescription('The person to kill')
+			.setRequired(true)
+		),
 
-	if (args.length !== 1) {
-		message.channel.send('yikes');
-		return;
-	}
-
-	try {
-		message.channel.send("( ͡° ͜ʖ ͡°)=ε/̵͇̿̿/'̿̿ ̿ ̿̿ ̿ ̿   " + args[0]);
-		let usrID = args[0].substr(3, args[0].length-4);
+	async  execute(interaction) {
+		let target = interaction.options.getUser('target');
 	
-		message.guild.members.fetch(usrID)
-		.then((res) => {
+		if (target == null) {
+			interaction.reply("First argument should be a user!");
+			return;
+		}
+	
+		interaction.reply("( ͡° ͜ʖ ͡°)=ε/̵͇̿̿/'̿̿ ̿ ̿̿ ̿ ̿   " + target.username);
+	
+		interaction.guild.members.fetch(target)
+		.then((guildMember) => {
 
-			let guildMember = res;
-
-			if (!common.validObject(guildMember.voice.channelID)) {
-				message.channel.send("User is not on a voice channel!");
+			if (!common.validObject(guildMember.voice.channelId)) {
+				interaction.followUp("User is not on a voice channel!");
 				return;
 			}
 
@@ -36,24 +45,20 @@ async function execute(message, args) {
 			KillList.findOne({ tag: tag }).orFail()
 			.then(result => {
 		
-				message.channel.send("Say your prayers :)");
+				interaction.followUp("Say your prayers :)");
 		
 				setTimeout((guildMember) => {
-					guildMember.voice.kick();
+					guildMember.voice.disconnect('You were killed');
 		
 				}, 3000, guildMember);
 			})
 			.catch(err => {
-				message.channel.send("Looks like you escaped :(");
+				interaction.followUp("Looks like you escaped :(");
 			})
 		
 		})
 		.catch((err) => {
-			message.channel.send("First argument should be @user!");
+			interaction.followUp("First argument should be @user!");
 		})
 	}
-	catch(err) {
-		message.channel.send("First argument should be @user!");
-	}
-	
 }

@@ -1,39 +1,55 @@
-const common = require('../common/common');
+const { SlashCommandBuilder } = require('@discordjs/builders');
 
+const common = require('../common/common');
 const InygonAnnounceList = require('../database/models/inygonAnnounceList');
 
-module.exports = {
-    name: 'inygonannouncer',
-    description: 'Manages the inygon announcer',
-    args: true,
-    minargs: 1,
-    usage: 'register\nunregister',
-    execute,
-};
+// module.exports = {
+//     name: 'inygonannouncer',
+//     description: 'Manages the inygon announcer',
+//     args: true,
+//     minargs: 1,
+//     usage: 'register\nunregister',
+//     execute,
+// };
 
-async function execute(message, args) {
+// name: 'inygonannouncer',
 
-    if (args.length !== 1) {
-        common.printUsage(message, module.exports);
-    }
 
-    else if (args[0] === 'register') {
-        handleRegister(message, args);
-    }
+module.exports = {	
+	data: new SlashCommandBuilder()
+		.setName('inygonannouncer')
+		.setDescription('Manages the inygon announcer')
+        .addSubcommand(subcommand => subcommand
+            .setName('register')
+            .setDescription('Registers the user on the inygon announcer')
+        )
+        .addSubcommand(subcommand => subcommand
+            .setName('unregister')
+            .setDescription('Registers the user on the inygon announcer')
+        ),
 
-    else if (args[0] === 'unregister') {
-        handleUnregister(message, args);
-    }
+    handleRegister: handleRegister,
+    handleUnregister: handleUnregister,
+        
+    async execute(interaction) {
+        let commandType = interaction.options.getSubcommand();
+
+        let author = interaction.member.user;
+
+        if (commandType === 'register') {
+            handleRegister(interaction, author);
+        }
+        else if (commandType === 'unregister') {
+            handleUnregister(interaction, author);
+        }
+    },
 }
 
-async function handleRegister(message, args) {
+async function handleRegister(interaction, author) {
 
-    let author = message.author;
-
-    InygonAnnounceList.findOne({ name: author }).orFail()
+    InygonAnnounceList.findOne({ name: author.toString() }).orFail()
     .then(result => {
-
-        common.alertAndLog(message, 'You are already registered');
+        common.alertAndLog(interaction, 'You are already registered');
     })
     .catch(err => {
 
@@ -43,26 +59,22 @@ async function handleRegister(message, args) {
 
         newRegistry.save()
         .then(mapping => {
-
-            common.alertAndLog(message, 'Registered successfully');
-
+            common.alertAndLog(interaction, 'Registered successfully');
         })
         .catch(err => {
             console.log(err);
-            common.alertAndLog(message, 'Failed to register');
+            common.alertAndLog(interaction, 'Failed to register');
         })
     })
-
 }
 
-async function handleUnregister(message, args) {
-    let author = message.author;
+async function handleUnregister(interaction, author) {
 
-    InygonAnnounceList.findOneAndDelete({ name: author }).orFail()
+    InygonAnnounceList.findOneAndDelete({ name: author.toString() }).orFail()
     .then(result => {
-        common.alertAndLog(message, 'Unregistered successfully');
+        common.alertAndLog(interaction, 'Unregistered successfully');
     })
     .catch(err => {
-        common.alertAndLog(message, 'You are not registered');
+        common.alertAndLog(interaction, 'You are not registered');
     })
 }

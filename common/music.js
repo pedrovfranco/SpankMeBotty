@@ -1,9 +1,13 @@
+const {createAudioPlayer, entersState, VoiceConnectionStatus, joinVoiceChannel, demuxProbe, createAudioResource, AudioPlayerStatus, getVoiceConnection} = require("@discordjs/voice");
+const { ChannelTypes } = require("discord.js/src/util/Constants");
+
 const ytdl = require('ytdl-core');
 const path = require('path');
-const fs = require('fs');
 const workerpool = require('workerpool');
 
 const common = require('./common');
+const GuildSettings = require('../database/models/guildSettings');
+
 
 exports.guilds = [];
 exports.ytdlOptions = { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 5 * 1024 * 1024 }; // Buffer size of 5 MB
@@ -13,249 +17,12 @@ const musicDirectory = path.join(__dirname, '..', 'music_files');
 const pool = workerpool.pool(path.join(__dirname, 'music_worker.js'), {maxWorkers: 4, workerType: 'thread'});
 
 
-exports.addToQueue = async (message, search_query) => {
+// Saves the guild information object to the exports.guilds array.
+// This object contains information about the current state of the guild
+// in regards to its voice connection and music playing
+exports.addGuild = (interaction) => {
 
-    addGuild(message);
-
-    const guildId = message.guild.id;
-    let guild = exports.guilds[guildId];
-
-    if (DEBUG_WORKER) {
-        const worker = require('./music_worker');
-
-        worker.getSong(search_query);
-    }
-    else {
-        pool.exec('getSong', [search_query])
-        .then(result => {
-
-            let info = result;
-
-            if (info === null) {
-                message.channel.send('Video not found');
-                return;
-            }
-
-            guild.queue.push({ link: info.videoDetails.video_url, info: info.videoDetails, playing: false });
-
-            // Not playing
-            if (guild.playing === -1) {
-                playNextSong(guild);
-            }
-
-        })
-        .catch(err => {
-            console.log(err);
-        });
-    }
-
-}
-
-
-async function playNextSong(guild) {
-
-    return new Promise(async (resolve, reject) => {
-        try {
-            if (guild.queue.length !== 0) {
-
-                // If not playing anything go to the start of the queue
-                if (guild.playing === -1) {
-                    guild.playing = 0;
-                }
-
-                // If hit the end of the queue
-                if (guild.playing >= guild.queue.length) {
-                    return;
-                }
-
-                const video = guild.queue[0];
-                const link = video.link;
-
-                guild.voiceConnection = await guild.message.member.voice.channel.join();
-
-                // await cleanMusicDirectory(guild)
-                // .catch(err => {
-                //     reject(err);
-                // });
-
-                guild.currentStream = await ytdl(link, exports.ytdlOptions);
-                guild.currentVideoDetails = video.info;
-
-                guild.message.channel.send('Playing: ' + video.info.title);
-
-                // const guildMusicDirectory = path.join(musicDirectory, guild.guildId);
-                // fs.mkdirSync(guildMusicDirectory, { recursive: true });
-
-                // const filepath = path.join(guildMusicDirectory, guild.currentVideoDetails.videoId + '.webm')
-                // let videoWritableStream = fs.createWriteStream(filepath);
-                // let stream = guild.currentStream.pipe(videoWritableStream);
-
-                // stream.on('finish', function () {
-
-                //     guild.currentStream = fs.createReadStream(filepath);
-
-                guild.streamDispatcher = guild.voiceConnection.play(guild.currentStream/* , { highWaterMark: 1 } */);
-                    guild.streamDispatcher.guild = guild;
-
-                    guild.streamDispatcher.on('error', err => {
-                        console.log(err);
-                    })
-
-                    guild.streamDispatcher.on('start', () => {
-                        guild.streamDispatcher.on('speaking', onSongPlayingOrStopping);
-                    })
-
-                    resolve(guild.streamDispatcher);
-                // });
-            }
-            else {
-
-                console.log();
-
-                guild.playing = -1;
-            }
-        }
-        catch (exception) {
-            if (exception.message.startsWith('No video id found')) {
-                common.alertAndLog(guild.message, "Link must be a video");
-            }
-            else {
-                common.alertAndLog(guild.message, "Failed to play, the link is probably broken");
-            }
-
-            reject(exception);
-        }
-    });
-}
-
-// this evaluates to the streamDispatcher
-async function onSongPlayingOrStopping(speaking) {
-
-    const guild = this.guild;
-    const video = guild.queue[guild.playing];
-
-    if (speaking === 1) {
-        video.playing = true;
-        return;
-    }
-
-    if (video.playing && !guild.paused && speaking === 0) {
-
-        await exports.skipCurrentSong(this.guild);
-    }
-}
-
-exports.skipCurrentSong = (guild) => {
-    return new Promise( async (resolve, reject) => {
-        await exports.stopPlaying(guild);
-
-        guild.queue.splice(guild.playing, 1);
-
-        playNextSong(guild);
-
-        resolve(true);
-    });
-}
-
-exports.pause = (guild) => {
-
-    if (guild.streamDispatcher !== undefined) {
-        if (guild.paused) {
-            return false;
-        }
-        else {
-            guild.paused = true;
-            guild.streamDispatcher.pause(false);
-            return true;
-        }
-    }
-}
-
-exports.resume = (guild) => {
-
-    if (guild.streamDispatcher !== undefined) {
-        if (guild.paused) {
-            guild.paused = false;
-            guild.streamDispatcher.resume();
-            return true; 
-        }
-        else {
-            return false;
-        }
-    }
-}
-
-
-exports.stopPlaying = (guild) => {
-    return new Promise(async (resolve, reject) => {
-
-        if (guild.streamDispatcher !== undefined) {
-            await guild.streamDispatcher.removeListener('speaking', onSongPlayingOrStopping);
-            
-            await guild.streamDispatcher.pause();
-            await guild.streamDispatcher.destroy();
-        }
-
-        if (guild.currentStream !== undefined) {
-            await guild.currentStream.pause();
-            await guild.currentStream.destroy();
-        }
-
-        resolve(true);
-    });
-}
-
-exports.clearQueue = (guild) => {
-    return new Promise(async (resolve, reject) => {
-
-        if (guild.playing === -1) {
-            guild.queue.length = 0;
-        }
-        else {
-            guild.queue = [guild.queue[guild.playing]];
-            guild.playing = 0;
-        }
-
-        resolve(true);
-
-    });
-}
-
-
-async function cleanMusicDirectory(guild) {
-    return new Promise(async (resolve, reject) => {
-
-        const guildMusicDirectory = path.join(musicDirectory, guild.guildId);
-
-        // Prevent read error on already playing stream
-        await exports.stopPlaying(guild);
-
-        fs.readdir(guildMusicDirectory, (err, files) => {
-            if (err) {
-                resolve(true);
-                return;
-            }
-
-            for (const file of files) {
-
-                if (file !== '.gitkeep') {
-                    fs.unlink(path.join(guildMusicDirectory, file), err => {
-                        if (err) {
-                            reject(err);
-                            return;
-                        }
-                    });
-                }
-            }
-
-            resolve(true);
-        });
-    });
-}
-
-function addGuild(message) {
-
-    const guildId = message.guild.id;
+    const guildId = interaction.guild.id;
     let guild;
 
     if (exports.guilds[guildId] === undefined) {
@@ -266,10 +33,13 @@ function addGuild(message) {
         guild.playing = -1;
         guild.paused = false;
         guild.guildId = guildId;
+        guild.volume = 1.0;
 
         guild.voiceConnection;
+        guild.audioPlayer;
+        guild.ttsAudioPlayer;
+
         guild.currentStream;
-        guild.streamDispatcher;
 
         exports.guilds[guildId] = guild;
     }
@@ -277,12 +47,446 @@ function addGuild(message) {
         guild = exports.guilds[guildId];
     }
 
-    guild.message = message;
+    guild.interaction = interaction;
+
+    return guild;
 }
 
-exports.getGuild = (message) => {
+exports.getGuild = (interaction) => {
 
-    addGuild(message);
+    return exports.addGuild(interaction);
+}
 
-    return exports.guilds[message.guild.id];
+exports.addToQueue = async (interaction, search_query) => {
+
+    if (!(ChannelTypes[interaction.channel.type] === ChannelTypes.GUILD_TEXT || 
+        ChannelTypes[interaction.channel.type] === ChannelTypes.GUILD_VOICE || 
+        ChannelTypes[interaction.channel.type] === ChannelTypes.GUILD_CATEGORY || 
+        ChannelTypes[interaction.channel.type] === ChannelTypes.GUILD_NEWS || 
+        ChannelTypes[interaction.channel.type] === ChannelTypes.GUILD_STORE || 
+        ChannelTypes[interaction.channel.type] === ChannelTypes.GUILD_NEWS_THREAD || 
+        ChannelTypes[interaction.channel.type] === ChannelTypes.GUILD_PUBLIC_THREAD || 
+        ChannelTypes[interaction.channel.type] === ChannelTypes.GUILD_PRIVATE_THREAD || 
+        ChannelTypes[interaction.channel.type] === ChannelTypes.GUILD_STAGE_VOICE)) {
+        interaction.reply('Wrong channel, must be in a server (No DMs or group chats)');
+        return;
+    }
+
+    if (interaction?.member?.voice?.channel?.id == null) {
+        interaction.reply('User must be in a voice channel!');
+        return;
+    }
+
+    let guild = exports.addGuild(interaction);
+
+    if (DEBUG_WORKER) {
+        const worker = require('./music_worker');
+
+        worker.getSong(search_query);
+    }
+    else {
+        pool.exec('getSong', [search_query])
+        .then(async result => {
+
+            let info = result;
+
+            if (info === null) {
+                interaction.reply('Video not found');
+                return;
+            }
+
+            guild.queue.push({ link: info.videoDetails.video_url, info: info.videoDetails, playing: false });
+
+            interaction.reply('Added: \"' + info.videoDetails.title + '\" to the music queue');
+
+            // Not playing
+            if (guild.playing === -1) {
+                await playNextSong(interaction, guild);
+            }
+        })
+        .catch(err => {
+            console.log(err);
+        });
+    }
+
+}
+
+
+async function playNextSong(interaction, guild) {
+
+    if (interaction == null) {
+        interaction = guild.interaction;
+    }
+
+    try {
+        if (guild.queue.length !== 0) {
+
+            // If not playing anything go to the start of the queue
+            if (guild.playing === -1) {
+                guild.playing = 0;
+            }
+
+            // If hit the end of the queue
+            if (guild.playing >= guild.queue.length) {
+                return false;
+            }
+
+            const video = guild.queue[0];
+            const link = video.link;
+
+            let connection = getVoiceConnection(guild.guildId);
+
+            if (connection == null) {
+                // From https://discordjs.guide/voice/voice-connections.html#cheat-sheet
+                // If you try to call joinVoiceChannel on another channel in the same guild in which there is already an active voice connection, the existing voice connection switches over to the new channel.
+                connection = joinVoiceChannel({
+                    channelId: interaction.member.voice.channel.id,
+                    guildId: interaction.guild.id,
+                    adapterCreator: interaction.guild.voiceAdapterCreator,
+                });
+
+                // Checks to see if a voice connection got disconnected because either the bot was kicked or it just switched channels
+                connection.on(VoiceConnectionStatus.Disconnected, async (oldState, newState) => {
+                    try {
+                        await Promise.race([
+                            entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
+                            entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
+                        ]);
+                        // Seems to be reconnecting to a new channel - ignore disconnect
+                    } catch (error) {
+                        // Seems to be a real disconnect which SHOULDN'T be recovered from
+                        exports.destroyGuildConnection(guild);
+                    }
+                });
+            }
+
+            guild.voiceConnection = connection;
+
+            let player = guild.audioPlayer;
+            if (player == null) {
+                player = createAudioPlayer();
+                player.guildId = guild.guildId;
+                player.connectionSubscription = connection.subscribe(player);
+                guild.audioPlayer = player;
+
+                    
+                player.on('error', error => {
+                    console.error(`Error: ${error.message} with resource ${error.resource.metadata.title}`);
+                    player.play(getNextResource());
+                });
+
+            }
+
+            const ytdlStream = await ytdl(link, exports.ytdlOptions);
+            guild.currentStream = ytdlStream;
+
+            const resource = await probeAndCreateResource(ytdlStream);
+            guild.currentResource = resource;
+            resource.volume.setVolume(guild.volume);
+
+            player.play(resource);
+            try {
+                await entersState(player, AudioPlayerStatus.Playing, 5_000);
+                // The player has entered the Playing state within 5 seconds
+                console.log('Playback has started');
+
+                player.once(AudioPlayerStatus.Idle, onSongEnd)
+            } catch (error) {
+                // The player has not entered the Playing state and either:
+                // 1) The 'error' event has been emitted and should be handled
+                // 2) 5 seconds have passed
+                console.error(error);
+            }
+
+            guild.currentVideoDetails = video.info;
+
+            interaction.channel.send('Playing: ' + video.info.title);
+
+            return true;
+        }
+        else {
+            guild.playing = -1;
+        }
+    }
+    catch (exception) {
+        if (exception.message.startsWith('No video id found')) {
+            interaction.channel.send("Link must be a video");
+            console.log("Link must be a video");
+        }
+        else {
+            interaction.channel.send("Failed to play, the link is probably broken");
+            console.log("Failed to play, the link is probably broken");
+        }
+
+        return false;
+    }
+}
+
+exports.playTTS = async (interaction, guild, readStream, callback = null) => {
+    
+    try {
+
+        if (!common.validObject(guild))
+            return false;
+
+        let connection = getVoiceConnection(guild.guildId);
+
+        if (connection == null) {
+            // From https://discordjs.guide/voice/voice-connections.html#cheat-sheet
+            // If you try to call joinVoiceChannel on another channel in the same guild in which there is already an active voice connection, the existing voice connection switches over to the new channel.
+            connection = joinVoiceChannel({
+                channelId: interaction.member.voice.channel.id,
+                guildId: interaction.guild.id,
+                adapterCreator: interaction.guild.voiceAdapterCreator,
+            });
+
+            // Checks to see if a voice connection got disconnected because either the bot was kicked or it just switched channels
+            connection.on(VoiceConnectionStatus.Disconnected, async (oldState, newState) => {
+                try {
+                    await Promise.race([
+                        entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
+                        entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
+                    ]);
+                    // Seems to be reconnecting to a new channel - ignore disconnect
+                } catch (error) {
+                    // Seems to be a real disconnect which SHOULDN'T be recovered from
+                    exports.destroyGuildConnection(guild);
+                }
+            });
+        }
+
+        guild.voiceConnection = connection;
+
+        let ttsPlayer = guild.ttsAudioPlayer;
+
+        if (!common.validObject(ttsPlayer)) {
+
+            ttsPlayer = createAudioPlayer();
+            ttsPlayer.guildId = guild.guildId;
+            guild.ttsAudioPlayer = ttsPlayer;
+
+        }
+
+        let resource = await probeAndCreateResource(readStream, null); // Disable inlinevolume since the volume will always be max (1.0)
+        ttsPlayer.shouldPause = false;
+
+        if (guild.audioPlayer != null && guild.audioPlayer.connectionSubscription != null) {
+            guild.audioPlayer.connectionSubscription.unsubscribe();
+            
+            ttsPlayer.shouldPause = (guild.audioPlayer.state == AudioPlayerStatus.Buffering || guild.audioPlayer.state == AudioPlayerStatus.Playing);
+
+            if (ttsPlayer.shouldPause)
+                guild.audioPlayer.pause();
+        }
+
+        ttsPlayer.connectionSubscription = connection.subscribe(ttsPlayer);
+
+        ttsPlayer.play(resource);
+        try {
+            await entersState(ttsPlayer, AudioPlayerStatus.Playing, 5_000);
+            // The player has entered the Playing state within 5 seconds
+            console.log('TTS has started');
+            callback(null); // Success
+
+            ttsPlayer.once(AudioPlayerStatus.Idle, onTTSEnd);
+        } catch (error) {
+            // The player has not entered the Playing state and either:
+            // 1) The 'error' event has been emitted and should be handled
+            // 2) 5 seconds have passed
+            callback(error); // Failed
+        }
+    }
+    catch (err) {
+        callback(err);
+    }
+}
+
+async function onSongEnd(oldState, newState) {
+
+    let guild = exports.guilds[this.guildId];
+
+    if (await exports.skipCurrentSong(guild)) { 
+        console.log("Skipped song");
+        return true;
+    }
+    else {
+        console.log("Reached end of queue!");
+        return false;
+    }
+}
+
+async function onTTSEnd(oldState, newState) {
+
+    let guild = exports.guilds[this.guildId];
+
+    guild.ttsAudioPlayer.connectionSubscription.unsubscribe();
+    guild.ttsAudioPlayer.connectionSubscription = undefined;
+    guild.ttsAudioPlayer = undefined;
+
+    let connection = getVoiceConnection(guild.guildId);
+
+    if (guild.audioPlayer != null) { 
+        guild.audioPlayer.connectionSubscription = connection.subscribe(guild.audioPlayer);
+        
+        if (this.shouldPause) {
+            guild.audioPlayer.resume();
+        }
+    }
+
+    console.log("TTS ended");
+}
+
+async function probeAndCreateResource(readableStream, inlineVolume = true) {
+	const { stream, type } = await demuxProbe(readableStream);
+	return createAudioResource(stream, {
+        metadata: {
+            title: 'A good song!',
+        },
+        inputType: type,
+        inlineVolume: inlineVolume,
+    });
+}
+
+
+exports.skipCurrentSong = async (guild) => {
+    if (guild.queue.length == 0)
+        return false;
+
+    guild.audioPlayer.pause();
+    guild.queue.splice(guild.playing, 1);
+
+    playNextSong(undefined, guild);
+
+    return true;
+}
+
+exports.pause = (guild) => {
+    return guild.audioPlayer.pause();
+}
+
+exports.resume = (guild) => {
+    return guild.audioPlayer.unpause();
+}
+
+
+exports.clearQueue = (guild) => {
+
+    if (guild.playing === -1) {
+        guild.queue = [];
+    }
+    else {
+        guild.queue.splice(1);
+    }
+
+    return true;
+}
+
+exports.stop = (guild) => {
+
+    guild.playing = -1;
+
+    exports.clearQueue(guild);
+
+    guild.audioPlayer.stop();
+    guild.audioPlayer = undefined;
+    
+    guild.currentVideoDetails = undefined;
+
+}
+
+exports.printGuild = (interaction) => {
+    let guild = exports.getGuild(interaction);
+    let prunedGuild = {};
+
+    prunedGuild.queue = guild.queue
+    prunedGuild.currentVideoDetails = guild.currentVideoDetails;
+    prunedGuild.playing = guild.playing;
+    prunedGuild.paused = guild.paused;
+    prunedGuild.guildId = guild.guildId;
+    prunedGuild.volume = guild.volume;
+
+    console.log(JSON.stringify(prunedGuild, null, 2));
+
+    return prunedGuild;
+}
+
+exports.changeVolume = (guild, new_volume, saveToDB)  => {
+    try {
+        guild.volume = new_volume;
+
+        if (guild?.currentResource?.volume != null && guild?.currentResource?.volume != undefined)
+            guild.currentResource.volume.setVolume(guild.volume);
+
+        if (saveToDB === true) {
+
+            GuildSettings.find({guildId: guild.guildId})
+            .then(mappings => {
+
+                if (mappings.length === 0) { 
+                    const newGuildSettings = new GuildSettings({
+                        guildId: guild.guildId,
+                        musicvolume: new_volume
+                    });
+        
+                    newGuildSettings.save()
+                    .then(mapping => {
+                        console.log('Saved guildSettings for guildId ' + guild.guildId);
+                    })
+                    .catch(err => {
+                        let errorMsg = 'Failed to save guildSettings';
+            
+                        if (err.code === 11000) {
+                            errorMsg += ', name already exists';
+                        }
+                        else {
+                            errorMsg += ', unknown error';
+                            console.log(err);
+                        }
+                    });
+                }
+                else {
+
+                    for (let i = 0; i < mappings.length; i++) {
+                        let entry = mappings[i];
+
+                        entry.musicvolume = new_volume;
+                        entry.save();
+                    }
+                }
+            })
+            .catch(err => {
+                console.log(err);
+            });
+            
+    
+        }
+    }
+    catch (err) {
+        let errorMsg = 'Failed to apply volume change!';
+        console.log(err);
+    }
+}
+
+exports.destroyGuildConnection = async (guild) => {
+    const connection = getVoiceConnection(guild.guildId);
+
+    if (connection == null)  {
+        return false;
+    }
+
+    console.log("Destroying guild voice connection, guildid = " + guild.guildId.toString());
+
+    connection.destroy();
+    exports.guilds[guild.guildId].voiceConnection = undefined;
+
+    exports.guilds[guild.guildId].audioPlayer.destroy();
+    exports.guilds[guild.guildId].audioPlayer = undefined;
+
+    return true;
+};
+
+exports.hasVoiceConnection = async (guild) => {
+    const connection = getVoiceConnection(guild.guildId);
+
+    return (connection != null && connection != undefined);
 }

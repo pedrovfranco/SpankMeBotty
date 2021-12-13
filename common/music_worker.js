@@ -14,6 +14,7 @@ async function getSong(search_query) {
 
     const linkRegex = /^(https?\:\/\/)?(www\.)?youtube\.com/g;
     let link;
+    let ytsrInfo;
 
     if (linkRegex.test(search_query)) {
         link = search_query;
@@ -88,7 +89,11 @@ async function getSong(search_query) {
             if (result.length === 0)
                 return null;
 
-            link = result[0].link;
+            link = result[0].url;
+            ytsrInfo = result[0]
+
+            console.log(result[0].title)
+            console.log(link)
         }
         catch (err) {
             console.log(err);
@@ -98,6 +103,7 @@ async function getSong(search_query) {
     }
 
     let info = await ytdl.getInfo(link, music.ytdlOptions);
+    info.videoDetails.ytsrInfo = ytsrInfo;
     
     return info;
 }

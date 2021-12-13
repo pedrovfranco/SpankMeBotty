@@ -1,0 +1,21 @@
+setup:
+  # addons:
+  #   - plan: heroku-postgresql
+  #     as: DATABASE
+build:
+  docker:
+    # web: Dockerfile
+    worker: Dockerfile
+
+release:
+  # command:
+  #   - ./deployment-tasks.sh
+  image: worker
+
+run:
+  # web: bundle exec puma -C config/puma.rb
+  worker: dumb-init npm start
+  # asset-syncer:
+  #   command:
+  #     - python asset-syncer.py
+  #   image: worker

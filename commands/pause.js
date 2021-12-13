@@ -1,26 +1,35 @@
+const { SlashCommandBuilder } = require('@discordjs/builders');
+
 const music = require('../common/music');
 
-module.exports = {
-    name: 'pause',
-    description: 'Pauses the music stream',
-    args: false,
-    execute,
-};
+// module.exports = {
+//     name: 'pause',
+//     description: 'Pauses the music stream',
+//     args: false,
+//     execute,
+// };
 
-async function execute(message, args) {
-    
-    let guild = music.getGuild(message);
 
-    if (guild.queue.length === 0) {
-        message.channel.send('The queue is empty');
-        return;
+module.exports = {	
+	data: new SlashCommandBuilder()
+		.setName('pause')
+		.setDescription('Pauses the music stream')
+    ,
+
+    async execute(interaction) {
+        
+        let guild = music.getGuild(interaction);
+
+        if (guild.queue.length === 0) {
+            interaction.reply('The queue is empty');
+            return;
+        }
+
+        if (music.pause(guild)) {
+            interaction.reply('Paused');
+        }
+        else {
+            interaction.reply('The song is already paused');
+        }
     }
-
-    if (music.pause(guild)) {
-        message.channel.send('Paused');
-    }
-    else {
-        message.channel.send('Song is already paused');
-    }
-
 }

@@ -1,15 +1,12 @@
+const { SlashCommandBuilder } = require('@discordjs/builders');
 const music = require('../common/music');
 
 module.exports = {
-    name: 'clear',
-    description: 'Clears the music queue',
-    args: false,
-    execute,
+    data: new SlashCommandBuilder()
+    .setName('clear')
+    .setDescription('Clears the music queue'),
+
+    async execute(interaction) {
+        music.clearQueue(music.getGuild(interaction));
+    },
 };
-
-async function execute(message, args) {
-    
-    let guild = music.getGuild(message);
-
-    music.clearQueue(guild);
-}

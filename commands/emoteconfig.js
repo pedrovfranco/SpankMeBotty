@@ -1,3 +1,4 @@
+const { SlashCommandBuilder } = require('@discordjs/builders');
 const fs = require('fs');
 const path = require('path');
 const download = require('image-downloader')
@@ -8,56 +9,71 @@ const Emote = require('../database/models/emote');
 
 const maxFileSize = 8*1024*1024;
 
-module.exports = {
-	name: 'emoteconfig',
-    description: 'Manage emotes',
-    args: true,
-    minargs: 1,
-    usage: 'register <emote_name> <emote_link>\nremove <emote_name>\nlist',
-	execute,
-    handleList,
+module.exports = {	
+	data: new SlashCommandBuilder()
+		.setName('emoteconfig')
+		.setDescription('Manage emotes')
+        .addSubcommand(subcommand => subcommand
+            .setName('register')
+            .setDescription('Registers an emote')
+            .addStringOption(option => option
+                .setName('emote_link')
+                .setDescription('The link to the image file')
+                .setRequired(true)
+            ).addStringOption(option => option
+                .setName('emote_name')
+                .setDescription('The desired emote name')
+            )
+        )
+        .addSubcommand(subcommand => subcommand
+            .setName('remove')
+            .setDescription('Removes an emote')
+            .addStringOption(option => option
+                .setName('emote_name')
+                .setDescription('The emote name')
+                .setRequired(true)
+            )
+        )
+        .addSubcommand(subcommand => subcommand
+            .setName('list')
+            .setDescription('Lists all emotes for this server')
+        ),
+
+    handleRegister: handleRegister,
+    handleRemove: handleRemove,
+    handleList: handleList,
+
+    async execute(interaction) {
+        let commandType = interaction.options.getSubcommand();
+        console.log(commandType);
+
+        if (commandType === 'register') {
+            let emoteLink = interaction.options.getString('emote_link');
+            let emoteName = interaction.options.getString('emote_name');
+
+            handleRegister(interaction, emoteLink, emoteName);
+        }
+        else if (commandType === 'remove') {
+            let emoteName = interaction.options.getString('emote_name');
+
+            handleRemove(interaction, emoteName);
+        }
+        else if (commandType === 'list') {
+            handleList(interaction);
+        }
+    },
 };
 
-async function execute(message, args) {
+async function handleRegister(interaction, emoteLink, emoteName) {
 
-	if (args[0] === 'register') {
-        handleRegister(message, args);
-        
-        if (args.length === 1) {
-            common.printUsage(message, module.exports);
-            return;
-        }
-    }
-    else if (args[0] === 'remove') {
-        handleRemove(message, args);
-
-        if (args.length === 1) {
-            common.printUsage(message, module.exports);
-            return;
-        }
-    }
-    else if (args[0] === 'list') {
-        handleList(message, args);
-    }
-
-}
-
-function handleRegister(message, args) {
-
-    if (args.length === 1) {
-        message.channel.send("Please specify a link");
-        return;
-    }
-
-    let link = args[2];
     let filename;
-    let emoteName;
     let hasExtension;
 
-    filename = link.substr(link.lastIndexOf('/')+1);
+    filename = emoteLink.substr(emoteLink.lastIndexOf('/')+1);
     hasExtension = (filename.lastIndexOf('.') !== -1);
 
-    if (args.length === 2) {
+    // Create emoteName from the filename
+    if (emoteName === null || emoteName === undefined) {
 
         // Create emoteName from filename without extension
         if (hasExtension) {
@@ -66,14 +82,10 @@ function handleRegister(message, args) {
         else {
             emoteName = filename;
         }
-
     }
-    else if (args.length === 3) {
-        emoteName = args[1];
-    }
-           
+        
     download.image({
-        url: link,
+        url: emoteLink,
         dest: path.join(__dirname, '..', 'emotes', emoteName) + '.tmp'
     })
     .then(({ filename }) => {
@@ -84,14 +96,14 @@ function handleRegister(message, args) {
             let data = fs.readFileSync(filepath);
 
             if (data.length > maxFileSize) {
-                message.channel.send("The image is too big!");
+                interaction.reply("The image is too big!");
                 return;
             }
 
             const imageInfo = imageType(data);
 
             if (!common.validObject(imageInfo)) {
-                message.channel.send("That doesn't look like an image...");
+                interaction.reply("That doesn't look like an image...");
                 return;
             }
 
@@ -100,15 +112,15 @@ function handleRegister(message, args) {
             const newEmote = new Emote({
                 name: emoteName,
                 data: data,
-                guildId: message.guild.id,
+                guildId: interaction.guild.id,
                 filename: emoteName + '.' + imageInfo.ext,
-                creator: message.author.tag,
+                creator: interaction.member.user.tag,
             });
 
             newEmote.save()
             .then(mapping => {
                 console.log('Saved ' + emoteName);
-                message.channel.send('Saved ' + emoteName);
+                interaction.reply('Saved ' + emoteName);
                 fs.unlink(filepath, (err) => {
                     if (err) {
                         console.log(err);
@@ -127,7 +139,7 @@ function handleRegister(message, args) {
                     console.log(err);
                 }
 
-                message.channel.send(errorMsg);
+                interaction.reply(errorMsg);
             });
             
         }
@@ -139,27 +151,25 @@ function handleRegister(message, args) {
     })
     .catch((err) => {
         console.log('io');
-        console.error(err);
+        console.log(err);
     });
+};
 
-}
-
-
-function handleRemove(message, args) {
-
-    Emote.findOneAndDelete({ name: args[1] }).orFail()
+async function handleRemove(interaction, emoteName) {
+    
+    Emote.findOneAndDelete({ name: emoteName }).orFail()
     .then(result => {
-        message.channel.send('Removed emote ' + result.name);
+        interaction.reply('Removed emote ' + result.name);
     })
     .catch(err => {
         console.log(err);
-        message.channel.send('Emote does not exist!');
+        interaction.reply('Emote does not exist!');
     })
-}
+};
 
-function handleList(message, args) {
-
-    Emote.find({guildId: message.guild.id})
+async function handleList(interaction) {
+    
+    Emote.find({guildId: interaction.guild.id})
     .then(mappings => {
 
         let list = 'Emotes:';
@@ -182,13 +192,13 @@ function handleList(message, args) {
         }
 
 
-        message.channel.send(list);
+        interaction.reply(list);
 
     })
     .catch(err => {
 
         console.log(err);
-        message.channel.send("Oops, something went wrong!");
+        interaction.reply("Oops, something went wrong!");
 
     })
-}
+};
