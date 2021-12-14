@@ -13,7 +13,8 @@ module.exports = {
         let guild = music.getGuild(interaction);
 
         if (guild.queue.length === 0 || guild.queue.length === 1) {
-            return false;
+            interaction.reply('The music queue is too small to shuffle!');
+            return;
         }
 
         if (music.shuffle(guild))
