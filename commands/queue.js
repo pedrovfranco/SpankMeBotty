@@ -47,7 +47,7 @@ module.exports = {
 
             result += '[' + (i+1) + '] ';
 
-            let title = vid.info.title;
+            let title = vid.title;
             if (title.length > maxTitleLength) {
                 title = title.substr(0, maxTitleLength - 3);
                 title += '...';
@@ -57,17 +57,59 @@ module.exports = {
 
             let time = '(';
 
-            if (vid.playing) {
-                time += common.formatSeconds(Math.round(parseInt(guild.streamDispatcher.streamTime) / 1000)) + '/';
-            }
+            // if (playing) {
+            //     time += common.formatSeconds(Math.round(parseInt(guild.streamDispatcher.streamTime) / 1000)) + '/';
+            // }
 
-            time += common.formatSeconds(vid.info.lengthSeconds) + ')';
+            time += common.formatSeconds(vid.lengthSeconds) + ')';
 
             result += ' ' + time;
 
             if (i < guild.queue.length - 1) {
                 result += '\n';
             }
+        }
+
+        if (guild.queue.length > maxQueueSize) {
+            // Fails on queue.length == 11
+
+            if (guild.queue.length > maxQueueSize+1) { // guild.queue.length == 11
+                result += '  ...\n';
+            }
+            
+            i = guild.queue.length - 1;
+        
+            const vid = guild.queue[i];
+            let playing = (i === guild.playing);
+
+            if (playing) {
+                result += '- ';
+            }
+            else {
+                result += '  ';
+            }
+
+            result += '[' + (i+1) + '] ';
+
+            let title = vid.title;
+            if (title.length > maxTitleLength) {
+                title = title.substr(0, maxTitleLength - 3);
+                title += '...';
+            }
+
+            result += title;
+
+            let time = '(';
+
+            // if (playing) {
+            //     time += common.formatSeconds(Math.round(parseInt(guild.streamDispatcher.streamTime) / 1000)) + '/';
+            // }
+
+            time += common.formatSeconds(vid.lengthSeconds) + ')';
+
+            result += ' ' + time;
+
+
         }
 
         result += "```";

@@ -35,7 +35,7 @@ module.exports = {
              
                 return command.data.name;
             }).join(', '));
-            data.push(`\nYou can send \`${prefix}help [command name]\` to get info on a specific command!`);
+            // data.push(`\nYou can send \`${prefix}help [command name]\` to get info on a specific command!`);
             
             return interaction.member.user.send(data.join('\n'), { split: true })
             .then(() => {

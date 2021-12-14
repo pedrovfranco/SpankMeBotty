@@ -29,7 +29,6 @@ exports.addGuild = (interaction) => {
         guild = {};
 
         guild.queue = [];
-        guild.currentVideoDetails;
         guild.playing = -1;
         guild.paused = false;
         guild.guildId = guildId;
@@ -79,6 +78,10 @@ exports.addToQueue = async (interaction, search_query) => {
 
     let guild = exports.addGuild(interaction);
 
+    // Since the "getSong" call of the pool exec call can be either queued or just take along time (looking at you, ytpl...) we will defer the reply
+    // to let the discord API know we got the command successfully. It will also an "<application> is thinking..." message on the command reply field.
+    await interaction.deferReply();
+
     if (DEBUG_WORKER) {
         const worker = require('./music_worker');
 
@@ -88,16 +91,34 @@ exports.addToQueue = async (interaction, search_query) => {
         pool.exec('getSong', [search_query])
         .then(async result => {
 
-            let info = result;
-
-            if (info === null) {
+            if (result == null) {
                 interaction.reply('Video not found');
                 return;
             }
 
-            guild.queue.push({ link: info.videoDetails.video_url, info: info.videoDetails, playing: false });
+            let videoList = result.songArr;
+            let playlistTitle = result.playlistTitle;
 
-            interaction.reply('Added: \"' + info.videoDetails.title + '\" to the music queue');
+            for (let i = 0; i < videoList.length; i++) {
+                let videoElement = videoList[i];
+                // console.log(videoElement);
+                guild.queue.push(videoElement);
+            }
+
+            try {
+                if (playlistTitle == null) {
+                    if (videoList.length === 1)
+                        interaction.editReply('Added: \"' + videoList[0].title + '\" to the music queue');
+                }
+                else {
+                    interaction.editReply('Added playlist: \"' + playlistTitle + '\" with ' + videoList.length + ' songs to the music queue');
+                }
+            }
+            catch (err) {
+                console.log('Failed to reply to interaction!');
+                console.log(err);
+            }
+
 
             // Not playing
             if (guild.playing === -1) {
@@ -181,7 +202,7 @@ async function playNextSong(interaction, guild) {
             guild.currentStream = ytdlStream;
 
             const resource = await probeAndCreateResource(ytdlStream);
-            guild.currentResource = resource;
+            player.currentResource = resource;
             resource.volume.setVolume(guild.volume);
 
             player.play(resource);
@@ -198,9 +219,7 @@ async function playNextSong(interaction, guild) {
                 console.error(error);
             }
 
-            guild.currentVideoDetails = video.info;
-
-            interaction.channel.send('Playing: ' + video.info.title);
+            interaction.channel.send('Playing: ' + video.title);
 
             return true;
         }
@@ -216,6 +235,7 @@ async function playNextSong(interaction, guild) {
         else {
             interaction.channel.send("Failed to play, the link is probably broken");
             console.log("Failed to play, the link is probably broken");
+            console.log(exception);
         }
 
         return false;
@@ -371,6 +391,9 @@ exports.resume = (guild) => {
 
 exports.clearQueue = (guild) => {
 
+    if (guild.queue.length === 0)
+        return false;
+
     if (guild.playing === -1) {
         guild.queue = [];
     }
@@ -389,9 +412,6 @@ exports.stop = (guild) => {
 
     guild.audioPlayer.stop();
     guild.audioPlayer = undefined;
-    
-    guild.currentVideoDetails = undefined;
-
 }
 
 exports.printGuild = (interaction) => {
@@ -399,7 +419,6 @@ exports.printGuild = (interaction) => {
     let prunedGuild = {};
 
     prunedGuild.queue = guild.queue
-    prunedGuild.currentVideoDetails = guild.currentVideoDetails;
     prunedGuild.playing = guild.playing;
     prunedGuild.paused = guild.paused;
     prunedGuild.guildId = guild.guildId;
@@ -414,8 +433,8 @@ exports.changeVolume = (guild, new_volume, saveToDB)  => {
     try {
         guild.volume = new_volume;
 
-        if (guild?.currentResource?.volume != null && guild?.currentResource?.volume != undefined)
-            guild.currentResource.volume.setVolume(guild.volume);
+        if (guild?.player?.currentResource?.volume != null && guild?.player?.currentResource?.volume != undefined)
+            guild.player.currentResource.volume.setVolume(guild.volume);
 
         if (saveToDB === true) {
 

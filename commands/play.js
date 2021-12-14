@@ -34,7 +34,6 @@ module.exports = {
 
         const search_query = interaction.options.getString('youtube_video');
 
-
         music.addToQueue(interaction, search_query);
     }
 }

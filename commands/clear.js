@@ -7,6 +7,9 @@ module.exports = {
     .setDescription('Clears the music queue'),
 
     async execute(interaction) {
-        music.clearQueue(music.getGuild(interaction));
+        if (music.clearQueue(music.getGuild(interaction)))
+            interaction.reply('Cleared');
+        else
+            interaction.reply('The queue is empty!');
     },
 };
