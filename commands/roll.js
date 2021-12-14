@@ -34,13 +34,12 @@ module.exports = {
         if (max == null)
             max = 100;
 
-        if (max < min) {
-            interaction.reply('The maximum should be greater than the minimum value!')
+        let value = common.rollDice(min, max);
+
+        if (value == null) {
+            interaction.reply('The maximum should be greater than the minimum value!');
             return;
         }
-
-        let rnd = Math.random() * (max-min+1) + min;
-        rnd = Math.floor(rnd);
 
         let msg = 'I rolled ' + rnd;
         interaction.reply(msg);

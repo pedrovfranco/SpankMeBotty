@@ -247,6 +247,17 @@ exports.playTTS = async (interaction, text = '', voice = 'Brian', callback = nul
     })
 }
 
+exports.rollDice = (min = 1, max = 100) => {
+	if (max < min) {
+		return null;
+	}
+
+	let rnd = Math.random() * (max-min+1) + min;
+	rnd = Math.floor(rnd);
+
+	return rnd;
+}
+
 exports.getNewProxy = () => {
 
 	console.log('Getting new proxy for tts command');
@@ -393,3 +404,4 @@ exports.initializeCookieJar = () => {
 	// exports.axios.defaults.jar.setCookieSync('__cfduid=da3bcda890e0e8767ff80d6d24086adce1595192330', ttsAddress);
 	// let cookie = exports.axios.defaults.jar.getCookieStringSync(ttsAddress);
 }
+

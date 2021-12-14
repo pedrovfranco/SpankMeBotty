@@ -287,7 +287,7 @@ exports.playTTS = async (interaction, guild, readStream, callback = null) => {
 
         }
 
-        let resource = await probeAndCreateResource(readStream, null); // Disable inlinevolume since the volume will always be max (1.0)
+        let resource = await probeAndCreateResource(readStream, false); // Disable inlinevolume since the volume will always be max (1.0)
         ttsPlayer.shouldPause = false;
 
         if (guild.audioPlayer != null && guild.audioPlayer.connectionSubscription != null) {
@@ -508,4 +508,45 @@ exports.hasVoiceConnection = async (guild) => {
     const connection = getVoiceConnection(guild.guildId);
 
     return (connection != null && connection != undefined);
+}
+
+exports.shuffle = (guild) => {
+
+    try {
+        if (guild.queue.length === 0 || guild.queue.length === 1) {
+            return false;
+        }
+    
+        let startIndex = 0;
+    
+        if (guild.playing === 0) {
+            startIndex = 1;
+        }
+    
+        let queueDelta = []; // An array of the indexes of the queue that map to an object of the queue that should be shuffled, = [startIndex, startIndex+1, startIndex+2, ..., guild.queue.length-1]
+        let subQueue = []; // The queue that's going to be shuffled, contains only the elements of the queue that should be shuffled. subQueue.length === (guild.queue.length - startIndex)
+    
+        for (let i = startIndex; i < guild.queue.length; i++) {
+            queueDelta.push(i);
+        }
+    
+        // Generates random numbers to get a random index of guild.queue to add to the subqueue, after that the index is removed from the queueDelta
+        while (queueDelta.length > 0) {
+            let randomIndex = common.rollDice(0, queueDelta.length-1);
+    
+            subQueue.push(JSON.parse(JSON.stringify(guild.queue[queueDelta[randomIndex]]))); // Copies random element from queue
+            queueDelta.splice(randomIndex, 1);
+        }
+
+        // Replaces the values to be shuffle with values from the subQueue array
+        for (let i = startIndex; i < guild.queue.length; i++) {
+            guild.queue[i] = subQueue[i-startIndex];
+        }
+
+        return true;
+    }
+    catch (err) {
+        console.log(err);
+        return false;
+    }
 }

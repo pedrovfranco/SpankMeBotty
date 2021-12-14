@@ -57,9 +57,9 @@ module.exports = {
 
             let time = '(';
 
-            // if (playing) {
-            //     time += common.formatSeconds(Math.round(parseInt(guild.streamDispatcher.streamTime) / 1000)) + '/';
-            // }
+            if (playing && guild?.audioPlayer?.currentResource?.playbackDuration != null) {
+                time += common.formatSeconds(Math.round(parseInt(guild.audioPlayer.currentResource.playbackDuration) / 1000)) + '/';
+            }
 
             time += common.formatSeconds(vid.lengthSeconds) + ')';
 
