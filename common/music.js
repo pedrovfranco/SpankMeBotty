@@ -433,8 +433,8 @@ exports.changeVolume = (guild, new_volume, saveToDB)  => {
     try {
         guild.volume = new_volume;
 
-        if (guild?.player?.currentResource?.volume != null && guild?.player?.currentResource?.volume != undefined)
-            guild.player.currentResource.volume.setVolume(guild.volume);
+        if (guild?.audioPlayer?.currentResource?.volume != null && guild?.audioPlayer?.currentResource?.volume != undefined)
+            guild.audioPlayer.currentResource.volume.setVolume(guild.volume);
 
         if (saveToDB === true) {
 
