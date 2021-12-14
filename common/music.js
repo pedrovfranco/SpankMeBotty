@@ -92,7 +92,7 @@ exports.addToQueue = async (interaction, search_query) => {
         .then(async result => {
 
             if (result == null) {
-                interaction.reply('Video not found');
+                interaction.editReply('Video not found');
                 return;
             }
 

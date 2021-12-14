@@ -21,6 +21,10 @@ async function getSong(search_query) {
 
         if (videoLinkRegex.test(search_query)) {
             link = search_query;
+          
+            let info = await ytdl.getInfo(link, music.ytdlOptions);
+
+            return {songArr: [generateSongObject(info.videoDetails.video_url, info.videoDetails.title, info.videoDetails.lengthSeconds)]};
         }
         else if (playlistLinkRegex.test(search_query)) {
 
