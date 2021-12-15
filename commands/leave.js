@@ -27,7 +27,7 @@ module.exports = {
 			return;
 		}
 
-		music.destroyGuildCOnnection();
+		music.destroyGuildConnection();
 		console.log('Left channel');
 	}
 }
