@@ -193,7 +193,7 @@ async function playNextSong(interaction, guild) {
                     
                 player.on('error', error => {
                     console.error(`Error: ${error.message} with resource ${error.resource.metadata.title}`);
-                    player.play(getNextResource());
+                    return playNextSong(null, exports.guilds[this.guildId]);
                 });
 
             }
