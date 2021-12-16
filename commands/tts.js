@@ -41,11 +41,13 @@ module.exports = {
         if (voice == null)
             voice = 'Brian';
 
+        await interaction.deferReply();
+
         common.playTTS(interaction, text, voice, (err) => {
             if (err == null)
-                interaction.reply('TTS: ' + text);
+                interaction.editReply('TTS: ' + text);
             else {
-                interaction.reply('Failed!');
+                interaction.editReply('Failed!');
                 console.log('TTS error = ' + JSON.stringify(err));
             }
         });
