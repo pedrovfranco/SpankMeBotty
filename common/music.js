@@ -372,7 +372,10 @@ exports.skipCurrentSong = async (guild) => {
     if (guild.queue.length == 0)
         return false;
 
-    guild.audioPlayer.pause();
+    // guild.audioPlayer.stop();
+
+    guild.audioPlayer.removeListener(AudioPlayerStatus.Idle, onSongEnd);
+    
     guild.queue.splice(guild.playing, 1);
 
     playNextSong(undefined, guild);
