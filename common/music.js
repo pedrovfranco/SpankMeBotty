@@ -189,7 +189,6 @@ async function playNextSong(interaction, guild) {
                 player.guildId = guild.guildId;
                 player.connectionSubscription = connection.subscribe(player);
                 guild.audioPlayer = player;
-
                     
                 player.on('error', error => {
                     console.error(`Error: ${error.message} with resource ${error.resource.metadata.title}`);
@@ -372,11 +371,9 @@ exports.skipCurrentSong = async (guild) => {
     if (guild.queue.length == 0)
         return false;
 
-    // guild.audioPlayer.stop();
-
     guild.audioPlayer.removeListener(AudioPlayerStatus.Idle, onSongEnd);
-    
     guild.queue.splice(guild.playing, 1);
+    guild.audioPlayer.pause();
 
     playNextSong(undefined, guild);
 
