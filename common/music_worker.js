@@ -5,8 +5,7 @@ const ytpl = require('ytpl');
 
 const music = require('./music');
 
-const maxPlaylistSize = 500;
-
+const maxPlaylistSize = 2000;
 
 exports.getSong = getSong;
 
