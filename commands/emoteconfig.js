@@ -83,81 +83,87 @@ async function handleRegister(interaction, emoteLink, emoteName) {
             emoteName = filename;
         }
     }
-        
-    download.image({
-        url: emoteLink,
-        dest: path.join(__dirname, '..', 'emotes', emoteName) + '.tmp'
+
+    Emote.findOne({ name: emoteName, guildId: interaction.guild.id }).orFail()
+    .then(() => {
+        interaction.reply('An emote with that name already exists in this server!');
     })
-    .then(({ filename }) => {
-
-        let filepath = filename;
-
-        try {
-            let data = fs.readFileSync(filepath);
-
-            if (data.length > maxFileSize) {
-                interaction.reply("The image is too big!");
-                return;
-            }
-
-            const imageInfo = imageType(data);
-
-            if (!common.validObject(imageInfo)) {
-                interaction.reply("That doesn't look like an image...");
-                return;
-            }
-
-            console.log("The file was saved!");
-
-            const newEmote = new Emote({
-                name: emoteName,
-                data: data,
-                guildId: interaction.guild.id,
-                filename: emoteName + '.' + imageInfo.ext,
-                creator: interaction.member.user.tag,
-            });
-
-            newEmote.save()
-            .then(mapping => {
-                console.log('Saved ' + emoteName);
-                interaction.reply('Saved ' + emoteName);
-                fs.unlink(filepath, (err) => {
-                    if (err) {
-                        console.log(err);
-                        return;
-                    }
+    .catch(() => {
+        download.image({
+            url: emoteLink,
+            dest: path.join(__dirname, '..', 'emotes', emoteName) + '.tmp'
+        })
+        .then(({ filename }) => {
+    
+            let filepath = filename;
+    
+            try {
+                let data = fs.readFileSync(filepath);
+    
+                if (data.length > maxFileSize) {
+                    interaction.reply("The image is too big!");
+                    return;
+                }
+    
+                const imageInfo = imageType(data);
+    
+                if (!common.validObject(imageInfo)) {
+                    interaction.reply("That doesn't look like an image...");
+                    return;
+                }
+    
+                console.log("The file was saved!");
+    
+                const newEmote = new Emote({
+                    name: emoteName,
+                    data: data,
+                    guildId: interaction.guild.id,
+                    filename: emoteName + '.' + imageInfo.ext,
+                    creator: interaction.member.user.tag,
                 });
-            })
-            .catch(err => {
-                let errorMsg = 'Failed to save ' + emoteName;
-
-                if (err.code === 11000) {
-                    errorMsg += ', name already exists';
-                }
-                else {
-                    errorMsg += ', unknown error';
-                    console.log(err);
-                }
-
-                interaction.reply(errorMsg);
-            });
-            
-        }
-        catch (err) {
+    
+                newEmote.save()
+                .then(mapping => {
+                    console.log('Saved ' + emoteName);
+                    interaction.reply('Saved ' + emoteName);
+                    fs.unlink(filepath, (err) => {
+                        if (err) {
+                            console.log(err);
+                            return;
+                        }
+                    });
+                })
+                .catch(err => {
+                    let errorMsg = 'Failed to save ' + emoteName;
+    
+                    if (err.code === 11000) {
+                        errorMsg += ', name already exists';
+                    }
+                    else {
+                        errorMsg += ', unknown error';
+                        console.log(err);
+                    }
+    
+                    interaction.reply(errorMsg);
+                });
+                
+            }
+            catch (err) {
+                console.log(err);
+                console.log('oi');
+                return;
+            }
+        })
+        .catch((err) => {
+            console.log('io');
             console.log(err);
-            console.log('oi');
-            return;
-        }
+        });
     })
-    .catch((err) => {
-        console.log('io');
-        console.log(err);
-    });
 };
 
 async function handleRemove(interaction, emoteName) {
     
-    Emote.findOneAndDelete({ name: emoteName }).orFail()
+    Emote.findOneAndDelete({ name: emoteName, guildId: interaction.guild.id}).orFail()
     .then(result => {
         interaction.reply('Removed emote ' + result.name);
     })
