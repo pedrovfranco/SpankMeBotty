@@ -17,7 +17,7 @@ exports.audioFileCounter = 0;
 exports.twitchToken  = { access_token: '', expires_in: 0, expiration_date: 0, token_type: ''};
 exports.proxyRetryCount = 0;
 
-const useProxy = false
+const useProxy = false;
 const proxyMaxRetry = 3;
 
 exports.validObject = (obj) => {
@@ -30,17 +30,19 @@ exports.printCommand = (interaction) => {
 	console.log('Received command: ' + msg);
 }
 
-
 exports.sendEmote = (interaction, emoteName, replyOnFail = false) => {
 	
 	Emote.findOne({ name: emoteName, guildId: interaction.guild.id }).orFail()
 	.then(result => {
 
-		let filepath = path.join('emotes', result.filename);
+		let filepath = path.join('emotes', interaction.guild.id, result.filename);
 		
-		if (!fs.existsSync(filepath))
-			fs.writeFileSync(filepath, result.data, {encoding: 'binary'});
+		if (!fs.existsSync(filepath)) {
+			// Creates directory recursively
+			fs.mkdirSync(path.join('emotes', interaction.guild.id), { recursive: true});
 
+			fs.writeFileSync(filepath, result.data, {encoding: 'binary'});
+		}
 
 		interaction.reply({
 			files: [{
@@ -61,35 +63,6 @@ exports.sendEmote = (interaction, emoteName, replyOnFail = false) => {
 
 }
 
-// exports.sendEmote = (message, emoteName) => {
-// 	Emote.findOne({ name: emoteName, guildId: message.guild.id }).orFail()
-// 	.then(result => {
-
-// 		let filepath = path.join('emotes', result.filename);
-		
-// 		if (!fs.existsSync(filepath))
-// 			fs.writeFileSync(filepath, result.data, {encoding: 'binary'});
-
-// 		let cleanTag = message.member.user.tag.substr(0, interaction.member.user.tag.indexOf('#'));
-
-// 		message.channel.send(cleanTag, {
-// 			files: [{
-// 				attachment: filepath,
-// 			  }]
-// 		})
-// 		.then((res) => {
-// 			message.delete()
-// 			.catch(console.error);
-// 		})
-// 		.catch((err) => {
-// 			console.log('Failed to send ' + emoteName);
-// 			console.error(err);
-// 		});
-// 	})
-// 	.catch(err => {
-// 	})
-
-// }
 
 exports.alertAndLog = (interaction, text) => {
 	interaction.reply(text);

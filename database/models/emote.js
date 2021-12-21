@@ -17,6 +17,8 @@ const emoteSchema = new Schema(
 	},
 );
 
+emoteSchema.index({guildId: 1, name: 1}, {unique: true});
+
 module.exports = mongoose.model(
 	'emote',
 	emoteSchema,

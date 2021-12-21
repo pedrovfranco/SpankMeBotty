@@ -94,26 +94,26 @@ async function handleRegister(interaction, emoteLink, emoteName) {
             dest: path.join(__dirname, '..', 'emotes', emoteName) + '.tmp'
         })
         .then(({ filename }) => {
-    
+
             let filepath = filename;
-    
+
             try {
                 let data = fs.readFileSync(filepath);
-    
+
                 if (data.length > maxFileSize) {
                     interaction.reply("The image is too big!");
                     return;
                 }
-    
+
                 const imageInfo = imageType(data);
-    
+
                 if (!common.validObject(imageInfo)) {
                     interaction.reply("That doesn't look like an image...");
                     return;
                 }
-    
+
                 console.log("The file was saved!");
-    
+
                 const newEmote = new Emote({
                     name: emoteName,
                     data: data,
@@ -121,7 +121,7 @@ async function handleRegister(interaction, emoteLink, emoteName) {
                     filename: emoteName + '.' + imageInfo.ext,
                     creator: interaction.member.user.tag,
                 });
-    
+
                 newEmote.save()
                 .then(mapping => {
                     console.log('Saved ' + emoteName);
@@ -135,7 +135,7 @@ async function handleRegister(interaction, emoteLink, emoteName) {
                 })
                 .catch(err => {
                     let errorMsg = 'Failed to save ' + emoteName;
-    
+
                     if (err.code === 11000) {
                         errorMsg += ', name already exists';
                     }
@@ -143,7 +143,7 @@ async function handleRegister(interaction, emoteLink, emoteName) {
                         errorMsg += ', unknown error';
                         console.log(err);
                     }
-    
+
                     interaction.reply(errorMsg);
                 });
                 
