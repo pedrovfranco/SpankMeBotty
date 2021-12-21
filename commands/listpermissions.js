@@ -23,13 +23,10 @@ module.exports = {
         
         Permission.find({guildId: interaction.guild.id})
         .then(mappings => {
-
-            let list = 'Permissions:\n\`Role name - Permission type\n';
-
-
             if (mappings.length !== 0) {
+                let list = 'Permissions:\n\`\`\`Role name - Permission type\n';
+                list += '---------------------------\n';
 
-                list += '\n\`'
                 for (let i = 0; i < mappings.length; i++) {
                     const entry = mappings[i];
 
@@ -41,7 +38,7 @@ module.exports = {
 
                 }
 
-                list += '\`';
+                list += '\`\`\`';
                 interaction.reply(list);
             }
             else

@@ -219,7 +219,8 @@ async function playNextSong(interaction, guild) {
             }
 
             interaction.channel.send('Playing: ' + video.title);
-
+            console.log('Playing: ' + video.title);
+            
             return true;
         }
         else {
