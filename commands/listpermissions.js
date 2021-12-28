@@ -29,13 +29,11 @@ module.exports = {
 
                 for (let i = 0; i < mappings.length; i++) {
                     const entry = mappings[i];
-
                     list += entry.roleName + ' - ' + entry.type;
 
                     if (i < mappings.length-1) {
                         list += '\n';
                     }
-
                 }
 
                 list += '\`\`\`';
@@ -45,10 +43,8 @@ module.exports = {
                 interaction.reply('There are no permissions set on this server');
         })
         .catch(err => {
-
             console.log(err);
             interaction.reply("Oops, something went wrong!");
-
         })
     }
 }
