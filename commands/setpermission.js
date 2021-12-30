@@ -14,7 +14,7 @@ const Permission = require('../database/models/permission');
 module.exports = {	
 	data: new SlashCommandBuilder()
 		.setName('setpermission')
-		.setDescription('Plays music from youtube')
+		.setDescription('Sets a permission for a specific role on this server')
         .addStringOption(option => option
             .setName('role_name')
             .setDescription('The name of the discord role associated with this permission')
@@ -34,7 +34,7 @@ module.exports = {
 		let permissionType = interaction.options.getString('permission_type');
 
 		if (!interaction.member.permissions.has(Permissions.FLAGS.MANAGE_ROLES)) {
-			interaction.reply('You require permission to manage roles to use that command!');
+			interaction.reply('You require permission to manage roles in this server to use that command!');
 			return;
 		}
 

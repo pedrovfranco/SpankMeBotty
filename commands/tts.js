@@ -44,11 +44,22 @@ module.exports = {
         await interaction.deferReply();
 
         common.playTTS(interaction, text, voice, (err) => {
-            if (err == null)
+            if (err == null) {
                 interaction.editReply('TTS: ' + text);
+            }
+            else if (err?.errorType != null && err?.errorType === 'permissionError' && err?.errorMsg != null) {
+                interaction.editReply(err.errorMsg);
+                console.log('TTS permission error');
+            }
             else {
-                interaction.editReply('Failed!');
-                console.log('TTS error = ' + JSON.stringify(err));
+                try {
+                    interaction.editReply('Failed!');
+                    console.log('TTS error = ' + JSON.stringify(err));
+                }
+                catch (err) {
+                    interaction.editReply('Failed!');
+                    console.log('TTS error = ' + JSON.stringify(err));
+                }
             }
         });
     }

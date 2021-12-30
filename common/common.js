@@ -98,121 +98,141 @@ exports.playTTS = async (interaction, text = '', voice = 'Brian', callback = nul
 
 		let hasPermission = (hasRole || roles.length === 0);
 
-        if (hasPermission) {
-            let streamElementsFlag = true;
-			let ttsAddress;
-
-			if (streamElementsFlag) {
-				let guild = music.getGuild(interaction);
-				ttsAddress = 'https://api.streamelements.com/kappa/v2/speech?voice=' + encodeURIComponent(voice) + '&text=' + encodeURIComponent(text);
-
-				console.log('ttsAddress = ' + ttsAddress);
-
-				https.get(ttsAddress, (res) => {
-					if (res.statusCode != 200) {
-						callback({
-							statusCode: res.statusCode,
-							statusMessage: res.statusMessage
-						});
-					}
-					else
-						music.playTTS(interaction, guild, res, callback);
-				
-				});
-			}
+		if (!hasPermission) {
+			let callbackStr = 'You dont have the required permission to use the TTS command. ';
+			
+			if (roles.length === 1)
+				callbackStr += 'You need the ' + roles[0] + ' role.';
 			else {
-				ttsAddress = `https://ttsmp3.com/makemp3_new.php`;	
+				callbackStr += 'You need one of the following roles: ';
+
+				for (let i = 0; i < roles.length; i++) {
+					callbackStr += roles[i];
+
+					if (i === roles.length - 1) // Last element of the 'roles' array
+						callbackStr += ', ';
+				}
+			}
+			
+			callback({
+				errorType: 'permissionError',
+				errorMsg: callbackStr
+			});
+
+			return;
+		}
+
+		let streamElementsFlag = true;
+		let ttsAddress;
+
+		if (streamElementsFlag) {
+			let guild = music.getGuild(interaction);
+			ttsAddress = 'https://api.streamelements.com/kappa/v2/speech?voice=' + encodeURIComponent(voice) + '&text=' + encodeURIComponent(text);
+
+			console.log('ttsAddress = ' + ttsAddress);
+
+			https.get(ttsAddress, (res) => {
+				if (res.statusCode != 200) {
+					callback({
+						statusCode: res.statusCode,
+						statusMessage: res.statusMessage
+					});
+				}
+				else
+					music.playTTS(interaction, guild, res, callback);
+			
+			});
+		}
+		else {
+			ttsAddress = `https://ttsmp3.com/makemp3_new.php`;	
 
 
-				if (text.length >= 3000) {
-					this.alertAndLog(interaction, 'Message must have less than 3000 characters');
+			if (text.length >= 3000) {
+				this.alertAndLog(interaction, 'Message must have less than 3000 characters');
+				return;
+			}
+
+			let guild = music.getGuild(interaction);
+			guild.playing = -1;
+			await music.stopPlaying(guild);
+			// await music.clearQueue(guild);
+
+			axios.post(ttsAddress, querystring.stringify({
+				msg: text,
+				lang: voice,
+				source: 'ttsmp3'
+			}), {
+
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded"
+				},
+				
+				// proxy: (this.validObject(exports.proxy)) ? {
+				// 	host: exports.proxy.host,
+				// 	port: exports.proxy.port,
+				// }
+				// : null
+
+				httpsAgent: (this.validObject(exports.proxy)) ? new httpsProxyAgent(`http://${exports.proxy.host}:${exports.proxy.port}`) : null
+
+			}).then( async (res) => {
+
+				const statusCode = res.status;
+				const contentType = res.headers['content-type'];
+
+				let error;
+				if (statusCode !== 200) {
+					error = new Error('Request Failed.\n' + `Status Code: ${statusCode}`);
+				} else if (!/^application\/json/.test(contentType)) {
+					error = new Error('Invalid content-type.\n' + `Expected application/json but received ${contentType}`);
+				}
+				if (error) {
+					console.error(error.message);
 					return;
 				}
 
-				let guild = music.getGuild(interaction);
-				guild.playing = -1;
-				await music.stopPlaying(guild);
-				// await music.clearQueue(guild);
+				let url = res.data["URL"];
+				let errorMsg = res.data["Error"];
+				// console.log(res.data);
 
-				axios.post(ttsAddress, querystring.stringify({
-					msg: text,
-					lang: voice,
-					source: 'ttsmp3'
-				}), {
+				if (this.validObject(errorMsg) && errorMsg != '0') {
+					console.log(`${errorMsg}`);
 
-					headers: {
-						"Content-Type": "application/x-www-form-urlencoded"
-					},
-					
-					// proxy: (this.validObject(exports.proxy)) ? {
-					// 	host: exports.proxy.host,
-					// 	port: exports.proxy.port,
-					// }
-					// : null
-
-					httpsAgent: (this.validObject(exports.proxy)) ? new httpsProxyAgent(`http://${exports.proxy.host}:${exports.proxy.port}`) : null
-
-				}).then( async (res) => {
-
-					const statusCode = res.status;
-					const contentType = res.headers['content-type'];
-
-					let error;
-					if (statusCode !== 200) {
-						error = new Error('Request Failed.\n' + `Status Code: ${statusCode}`);
-					} else if (!/^application\/json/.test(contentType)) {
-						error = new Error('Invalid content-type.\n' + `Expected application/json but received ${contentType}`);
-					}
-					if (error) {
-						console.error(error.message);
-						return;
-					}
-
-					let url = res.data["URL"];
-					let errorMsg = res.data["Error"];
-					// console.log(res.data);
-
-					if (this.validObject(errorMsg) && errorMsg != '0') {
-						console.log(`${errorMsg}`);
-
-						if (useProxy) {
-							if (exports.proxyRetryCount < proxyMaxRetry) {
-								exports.getNewProxy().then(() => {
-				
-									exports.proxyRetryCount++;
-				
-									exports.playTTS(interaction, text, voice);
-								})
-							}
-							else {
-								console.log('Proxy retry amount exceed the max value, stopping')
-							}
+					if (useProxy) {
+						if (exports.proxyRetryCount < proxyMaxRetry) {
+							exports.getNewProxy().then(() => {
+			
+								exports.proxyRetryCount++;
+			
+								exports.playTTS(interaction, text, voice);
+							})
 						}
 						else {
-							exports.restartAllDynos()
+							console.log('Proxy retry amount exceed the max value, stopping')
 						}
-						
-						return;
 					}
-
-					exports.proxyRetryCount = 0;
-
-					// Use Axios to download the resulting mp3 file
-					let voiceConnection = await interaction.member.voice.channel.join();
-					voiceConnection.play(url);
-
-				})
-				.catch((error) => {
-					// handle error
-
-					if (this.validObject(error.response)) {
-						console.log(`${error.response.status}: ${error.response.statusText}`);
+					else {
+						exports.restartAllDynos()
 					}
-				});
-			}
-        }
-		else
-			return false;
+					
+					return;
+				}
+
+				exports.proxyRetryCount = 0;
+
+				// Use Axios to download the resulting mp3 file
+				let voiceConnection = await interaction.member.voice.channel.join();
+				voiceConnection.play(url);
+
+			})
+			.catch((error) => {
+				// handle error
+
+				if (this.validObject(error.response)) {
+					console.log(`${error.response.status}: ${error.response.statusText}`);
+				}
+			});
+		}
     })
     .catch(err => {
         console.log(err);
