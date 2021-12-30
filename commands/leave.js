@@ -21,13 +21,13 @@ module.exports = {
 
 		guild = music.getGuild(interaction);
 
-		if (!music.hasVoiceConnection()) {
+		if (!music.hasVoiceConnection(guild)) {
 			interaction.reply("I'm not in a voice channel!");
 			console.log("I'm not in a voice channel!");
 			return;
 		}
 
-		music.destroyGuildConnection();
+		music.destroyGuildConnection(guild);
 		console.log('Left channel');
 	}
 }
