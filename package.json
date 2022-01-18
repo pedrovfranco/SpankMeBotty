@@ -38,7 +38,7 @@
     "mongoose": "^6.1.2",
     "sodium": "^3.0.2",
     "workerpool": "^6.0.0",
-    "ytdl-core": "^4.9.2",
+    "ytdl-core": "^4.10.0",
     "ytpl": "^2.2.3",
     "ytsr": "^3.5.3"
   }
