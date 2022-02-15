@@ -191,11 +191,7 @@ async function playNextSong(interaction, guild) {
                 player.connectionSubscription = connection.subscribe(player);
                 guild.audioPlayer = player;
                     
-                player.on('error', error => {
-                    console.error(`Error: ${error.message} with resource ${error.resource.metadata.title}`);
-                    return playNextSong(null, this.guild);
-                });
-
+                player.on('error', onAudioPlayerError);
             }
 
             let ytdlStream;
@@ -377,6 +373,14 @@ async function onTTSEnd(oldState, newState) {
     }
 
     console.log("TTS ended");
+}
+
+async function onAudioPlayerError() {
+    console.error(`Error: ${error.message} with resource ${error.resource.metadata.title}`);
+    console.error(`Error name: ${error.name}`);
+    console.error(`Error stack: ${error.stack}`);
+
+    return playNextSong(null, exports.guilds[this.guildId]);
 }
 
 async function probeAndCreateResource(readableStream, inlineVolume = true) {
