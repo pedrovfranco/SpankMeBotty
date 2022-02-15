@@ -187,18 +187,19 @@ async function playNextSong(interaction, guild) {
             if (player == null) {
                 player = createAudioPlayer();
                 player.guildId = guild.guildId;
+                player.guild = guild;
                 player.connectionSubscription = connection.subscribe(player);
                 guild.audioPlayer = player;
                     
                 player.on('error', error => {
                     console.error(`Error: ${error.message} with resource ${error.resource.metadata.title}`);
-                    return playNextSong(null, exports.guilds[this.guildId]);
+                    return playNextSong(null, this.guild);
                 });
 
             }
 
-            let retryCount = 0;
             let ytdlStream;
+            let retryCount = 0;
             while (retryCount < exports.maxYtdlRetries) {
                 try {
                     ytdlStream = ytdl(link, exports.ytdlOptions);
@@ -348,7 +349,7 @@ async function onSongEnd(oldState, newState) {
     let guild = exports.guilds[this.guildId];
 
     if (await exports.skipCurrentSong(guild)) { 
-        console.log("Skipped song");
+        console.log("Song ended, playing next...");
         return true;
     }
     else {
