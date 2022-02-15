@@ -21,7 +21,27 @@ async function getSong(search_query) {
         if (videoLinkRegex.test(search_query)) {
             link = search_query;
           
-            let info = await ytdl.getInfo(link, music.ytdlOptions);
+            let info;
+
+            let retryCount = 0;
+            while (retryCount < music.maxYtdlRetries) {
+                try {
+                    info = await ytdl.getInfo(link, music.ytdlOptions);
+                    break;
+                }
+                catch (e) {
+                    retryCount++;
+                    let deltaRetries = music.maxYtdlRetries - retryCount;
+                    console.log('Exception raised when using ytdl, remaning retries: ' + deltaRetries);
+                    console.log(e);
+                }
+            }
+
+            if (retryCount >= music.maxYtdlRetries) {
+                console.log('Failed to get info from this song, something went wrong.');
+                return null;
+            }
+
 
             return {songArr: [generateSongObject(info.videoDetails.video_url, info.videoDetails.title, info.videoDetails.lengthSeconds)]};
         }

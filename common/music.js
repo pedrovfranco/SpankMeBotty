@@ -15,6 +15,7 @@ exports.ytdlOptions = { filter: 'audioonly', quality: 'highestaudio', highWaterM
 const DEBUG_WORKER = false;
 const musicDirectory = path.join(__dirname, '..', 'music_files');
 const pool = workerpool.pool(path.join(__dirname, 'music_worker.js'), {maxWorkers: 4, workerType: 'thread'});
+exports.maxYtdlRetries = 3;
 
 
 // Saves the guild information object to the exports.guilds array.
@@ -119,7 +120,6 @@ exports.addToQueue = async (interaction, search_query) => {
                 console.log(err);
             }
 
-
             // Not playing
             if (guild.playing === -1) {
                 await playNextSong(interaction, guild);
@@ -197,7 +197,29 @@ async function playNextSong(interaction, guild) {
 
             }
 
-            const ytdlStream = await ytdl(link, exports.ytdlOptions);
+            let retryCount = 0;
+            let ytdlStream;
+            while (retryCount < exports.maxYtdlRetries) {
+                try {
+                    ytdlStream = ytdl(link, exports.ytdlOptions);
+                    break;
+                }
+                catch (e) {
+                    retryCount++;
+                    let deltaRetries = exports.maxYtdlRetries - retryCount;
+                    console.log('Exception raised when using ytdl, remaning retries: ' + deltaRetries);
+                    console.log(e);
+                }
+            }
+
+            if (retryCount >= exports.maxYtdlRetries) {
+                let errMsg = 'Failed to play this song, something went wrong.';
+                console.log(errMsg);
+                interaction.channel.send(errMsg);
+
+                exports.skipCurrentSong(guild);
+            }
+
             guild.currentStream = ytdlStream;
 
             const resource = await probeAndCreateResource(ytdlStream);
