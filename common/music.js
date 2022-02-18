@@ -375,7 +375,7 @@ async function onTTSEnd(oldState, newState) {
     console.log("TTS ended");
 }
 
-async function onAudioPlayerError() {
+async function onAudioPlayerError(error) {
     console.error(`Error: ${error.message} with resource ${error.resource.metadata.title}`);
     console.error(`Error name: ${error.name}`);
     console.error(`Error stack: ${error.stack}`);
