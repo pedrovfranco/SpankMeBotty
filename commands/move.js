@@ -24,13 +24,13 @@ module.exports = {
 
         const guild = music.getGuild(interaction);
 
-        if (!(startIndex > 0)) {
-            interaction.reply({ content: 'start_index must be higher than 0.', ephemeral: true });
+        if (!(startIndex > 1)) {
+            interaction.reply({ content: 'start_index must be higher than 1.', ephemeral: true });
             return;
         }
 
-        if (!(endIndex > 0)) {
-            interaction.reply({ content: 'end_index must be higher than 0.', ephemeral: true });
+        if (!(endIndex > 1)) {
+            interaction.reply({ content: 'end_index must be higher than 1.', ephemeral: true });
             return;
         }
 
@@ -40,11 +40,11 @@ module.exports = {
         }
 
         if (!(guild.queue.length > 2)) {
-            interaction.reply({ content: 'The music queue msut have more than 2 songs to be able to use this command.', ephemeral: true });
+            interaction.reply({ content: 'The music queue must have more than 2 songs to be able to use this command.', ephemeral: true });
             return;
         }
 
-        if (music.move(guild, startIndex, endIndex)) {
+        if (music.move(guild, startIndex-1, endIndex-1)) {
             interaction.reply({ content: `Moved song from position ${startIndex} to position ${endIndex} of the music queue.` });
         }
         else {

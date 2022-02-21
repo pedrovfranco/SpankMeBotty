@@ -582,7 +582,7 @@ exports.shuffle = (guild) => {
 exports.move = (guild, startIndex, endIndex) => {
     try {
         let removed = guild.queue.splice(startIndex, 1);
-        guild.queue.splice(endIndex, 0, removed);
+        guild.queue.splice(endIndex, 0, removed[0]);
         return true;
     }
     catch (err) {
@@ -601,9 +601,9 @@ exports.seek = (guild, newPosition) => {
 
     var resource = guild?.audioPlayer?.currentResource;
     if (resource == null) {
-        return null;
+        return false;
     }
 
-    resource.playbackDuration = newPosition;
+    resource.playbackDuration = '' + newPosition;
     return true;
 }
