@@ -197,15 +197,16 @@ async function playNextSong(interaction, guild) {
             let ytdlStream;
             let retryCount = 0;
             while (retryCount < exports.maxYtdlRetries) {
-                ytdlStream = ytdl(link, exports.ytdlOptions)
-                .catch(err => {
+                try {
+                    ytdlStream = ytdl(link, exports.ytdlOptions);
+                    break;
+                }
+                catch (e) {
                     retryCount++;
                     let deltaRetries = exports.maxYtdlRetries - retryCount;
                     console.log('Exception raised when using ytdl, remaning retries: ' + deltaRetries);
                     console.log(e);
-                    continue;
-                });
-                break;
+                }
             }
 
             if (retryCount >= exports.maxYtdlRetries) {
