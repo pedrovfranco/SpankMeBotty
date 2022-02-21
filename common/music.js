@@ -578,3 +578,32 @@ exports.shuffle = (guild) => {
         return false;
     }
 }
+
+exports.move = (guild, startIndex, endIndex) => {
+    try {
+        let removed = guild.queue.splice(startIndex, 1);
+        guild.queue.splice(endIndex, 0, removed);
+        return true;
+    }
+    catch (err) {
+        console.error(err);
+        return false;
+    }
+}
+
+exports.seek = (guild, newPosition) => {
+
+    if (guild?.queue?.length == null || guild.queue.length === 0)
+        return false;
+
+    if (newPosition > guild.queue[0].lengthSeconds*1000)
+        return false;
+
+    var resource = guild?.audioPlayer?.currentResource;
+    if (resource == null) {
+        return null;
+    }
+
+    resource.playbackDuration = newPosition;
+    return true;
+}
