@@ -2,6 +2,7 @@ const workerpool = require('workerpool');
 const ytdl = require('ytdl-core');
 const ytsr = require('ytsr');
 const ytpl = require('ytpl');
+const playdl = require('play-dl');
 
 const music = require('./music');
 
@@ -26,7 +27,8 @@ async function getSong(search_query) {
             let retryCount = 0;
             while (retryCount < music.maxYtdlRetries) {
                 try {
-                    info = await ytdl.getInfo(link, music.ytdlOptions);
+                    // info = await ytdl.getInfo(link, music.ytdlOptions);
+                    info = (await playdl.video_basic_info(link)).video_details;
                     break;
                 }
                 catch (e) {
@@ -42,21 +44,23 @@ async function getSong(search_query) {
                 return null;
             }
 
-
-            return {songArr: [generateSongObject(info.videoDetails.video_url, info.videoDetails.title, info.videoDetails.lengthSeconds)]};
+            // return {songArr: [generateSongObject(info.videoDetails.video_url, info.videoDetails.title, info.videoDetails.lengthSeconds)]};
+            return {songArr: [generateSongObject(info.url, info.title, info.durationInSec)]};
         }
         else if (playlistLinkRegex.test(search_query)) {
 
             try {
-                const playlist = await ytpl(search_query, {
-                    limit: maxPlaylistSize
-                });
-
+                // const playlist = await ytpl(search_query, { limit: maxPlaylistSize });
+                const playlist = await playdl.playlist_info(search_query, { incomplete : true });
+                const videos = await playlist.all_videos();
                 let resultArr = [];
     
-                for (let i = 0; i < playlist.items.length; i++) {
-                    let item = playlist.items[i];
-                    resultArr.push(generateSongObject(item.shortUrl, item.title, item.durationSec));
+                // for (let i = 0; i < playlist.items.length; i++) {
+                for (let i = 0; i < videos.length && i < maxPlaylistSize; i++) {
+                    // let item = playlist.items[i];
+                    let item = videos[i];
+                    // resultArr.push(generateSongObject(item.shortUrl, item.title, item.durationSec));
+                    resultArr.push(generateSongObject(item.url, item.title, item.durationInSec));
                 }
     
                 return {songArr: resultArr, playlistTitle: playlist.title};
@@ -137,27 +141,28 @@ async function getSong(search_query) {
             // link = videos[0]['link'];
     
             //---------------------------YTSR package---------------------------
-                
-         
 
-            let result = (await ytsr(search_query, { safeSearch: false, limit: 20})).items.filter(value => value.type === 'video');
-            
+            // let result = (await ytsr(search_query, { safeSearch: false, limit: 20})).items.filter(value => value.type === 'video');
+            const result = await playdl.search(search_query, { source : { youtube : "video" }, limit: 20, fuzzy: true, language: 'pt-PT' });
+
             if (result.length === 0)
                 return null;
 
-            link = result[0].url;
+            const firstResult = result[0];
 
-            console.log(result[0].title)
-            console.log(link)
+            console.log(firstResult.title);
+            console.log(firstResult.url);
+
+            // let info = await ytdl.getInfo(firstResult.url, music.ytdlOptions);
+        
+            // return {songArr: [generateSongObject(info.videoDetails.video_url, info.videoDetails.title, info.videoDetails.lengthSeconds)]};
+
+            return {songArr: [generateSongObject(firstResult.url, firstResult.title, firstResult.durationInSec)]};
         }
         catch (err) {
             console.log(err);
             return null;
         }
-
-        let info = await ytdl.getInfo(link, music.ytdlOptions);
-
-        return {songArr: [generateSongObject(info.videoDetails.video_url, info.videoDetails.title, info.videoDetails.lengthSeconds)]};
     }
 }
 

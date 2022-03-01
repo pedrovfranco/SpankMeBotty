@@ -2,6 +2,7 @@ const {createAudioPlayer, entersState, VoiceConnectionStatus, joinVoiceChannel, 
 const { ChannelTypes } = require("discord.js/src/util/Constants");
 
 const ytdl = require('ytdl-core');
+const playdl = require('play-dl');
 const path = require('path');
 const workerpool = require('workerpool');
 
@@ -198,7 +199,9 @@ async function playNextSong(interaction, guild) {
             let retryCount = 0;
             while (retryCount < exports.maxYtdlRetries) {
                 try {
-                    ytdlStream = ytdl(link, exports.ytdlOptions);
+                    // ytdlStream = ytdl(link, exports.ytdlOptions);
+                    ytdlStream = await playdl.stream(link, { quality: 2, discordPlayerCompatibility: true });
+                    
                     break;
                 }
                 catch (e) {
@@ -219,7 +222,7 @@ async function playNextSong(interaction, guild) {
 
             guild.currentStream = ytdlStream;
 
-            const resource = await probeAndCreateResource(ytdlStream);
+            const resource = await probeAndCreateResource(ytdlStream, true, video.title);
             player.currentResource = resource;
             resource.volume.setVolume(guild.volume);
 
@@ -383,13 +386,13 @@ async function onAudioPlayerError(error) {
     return playNextSong(null, exports.guilds[this.guildId]);
 }
 
-async function probeAndCreateResource(readableStream, inlineVolume = true) {
-	const { stream, type } = await demuxProbe(readableStream);
-	return createAudioResource(stream, {
+async function probeAndCreateResource(readableStream, inlineVolume = true, title = 'A good song!') {
+	// const { stream, type } = await demuxProbe(readableStream);
+	return createAudioResource(readableStream.stream, {
         metadata: {
-            title: 'A good song!',
+            title: title,
         },
-        inputType: type,
+        inputType: readableStream.type,
         inlineVolume: inlineVolume,
     });
 }
