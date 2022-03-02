@@ -222,7 +222,7 @@ async function playNextSong(interaction, guild) {
 
             guild.currentStream = ytdlStream;
 
-            const resource = await probeAndCreateResource(ytdlStream, true, video.title);
+            const resource = createResource(ytdlStream.stream, ytdlStream.type, true, video.title);
             player.currentResource = resource;
             resource.volume.setVolume(guild.volume);
 
@@ -309,7 +309,7 @@ exports.playTTS = async (interaction, guild, readStream, callback = null) => {
 
         }
 
-        let resource = await probeAndCreateResource(readStream, false); // Disable inlinevolume since the volume will always be max (1.0)
+        let resource = await probeAndCreateResource(readStream, false, 'tts'); // Disable inlinevolume since the volume will always be max (1.0)
         ttsPlayer.shouldPause = false;
 
         if (guild.audioPlayer != null && guild.audioPlayer.connectionSubscription != null) {
@@ -387,12 +387,16 @@ async function onAudioPlayerError(error) {
 }
 
 async function probeAndCreateResource(readableStream, inlineVolume = true, title = 'A good song!') {
-	// const { stream, type } = await demuxProbe(readableStream);
-	return createAudioResource(readableStream.stream, {
+	const { stream, type } = await demuxProbe(readableStream);
+	return createResource(stream, type, inlineVolume, title)
+}
+
+function createResource(stream, type, inlineVolume = true, title = 'A good song!') {
+    return createAudioResource(stream, {
         metadata: {
             title: title,
         },
-        inputType: readableStream.type,
+        inputType: type,
         inlineVolume: inlineVolume,
     });
 }
