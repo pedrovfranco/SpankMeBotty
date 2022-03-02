@@ -61,7 +61,7 @@ module.exports = {
                 time += common.formatSeconds(Math.round(parseInt(guild.audioPlayer.currentResource.playbackDuration) / 1000)) + '/';
             }
 
-            time += common.formatSeconds(vid.lengthSeconds) + ')';
+            time += common.formatSeconds(Math.round(parseInt(vid.lengthSeconds))) + ')';
 
             result += ' ' + time;
 

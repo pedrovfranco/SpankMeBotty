@@ -317,10 +317,8 @@ exports.isTwitchTokenValid = () => {
 
 exports.formatSeconds = (input) => {
 
-	input = parseInt(input);
-
 	let seconds = input % 60;
-	let minutes = Math.floor(input / 60);
+	let minutes = Math.floor(input / 60) % 60;
 	let hours = Math.floor(input / 60 / 60);
 
 	if (seconds < 10) {
