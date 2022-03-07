@@ -131,6 +131,8 @@ function main() {
 	printDicordjsVoiceDependencyReport();
 
 	require('./deploy-commands');
+
+	music.initialize();
 }
 
 main();

@@ -1,13 +1,14 @@
 const {createAudioPlayer, entersState, VoiceConnectionStatus, joinVoiceChannel, demuxProbe, createAudioResource, AudioPlayerStatus, getVoiceConnection} = require("@discordjs/voice");
 const { ChannelTypes } = require("discord.js/src/util/Constants");
 
-const ytdl = require('ytdl-core');
+// const ytdl = require('ytdl-core');
 const playdl = require('play-dl');
 const path = require('path');
 const workerpool = require('workerpool');
 
 const common = require('./common');
 const GuildSettings = require('../database/models/guildSettings');
+const playdlAuthScript = require('../database/playdlAuthScript');
 
 
 exports.guilds = [];
@@ -18,6 +19,22 @@ const musicDirectory = path.join(__dirname, '..', 'music_files');
 const pool = workerpool.pool(path.join(__dirname, 'music_worker.js'), {maxWorkers: 4, workerType: 'thread'});
 exports.maxYtdlRetries = 3;
 
+
+exports.initialize = async () => {
+	await playdlAuthScript.GetAuthFromDb();
+}
+
+exports.refreshCredentialsIfNecessary = async () => {
+    if (playdl.is_expired()) {
+        let res = await playdl.refreshToken();
+        if (!res) {
+            console.log('Failed to refresh playdl token');
+        }
+        else {
+            console.log('Refreshed playdl token');
+        }
+    }
+}
 
 // Saves the guild information object to the exports.guilds array.
 // This object contains information about the current state of the guild

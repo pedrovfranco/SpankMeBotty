@@ -37,7 +37,7 @@
     "image-type": "^4.1.0",
     "mongoose": "^6.1.2",
     "sodium": "^3.0.2",
-    "play-dl": "^1.8.9",
+    "play-dl": "https://github.com/pedrovfranco/play-dl.git",
     "workerpool": "^6.0.0",
     "ytdl-core": "^4.10.1",
     "ytpl": "^2.2.3",
