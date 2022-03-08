@@ -95,9 +95,9 @@ async function getSong(search_query) {
   
     if (validation === 'sp_playlist') {
         const playlist = await playdl.spotify(search_query);
-        const spotifyTracks = await playlist.all_tracks();
+        // const spotifyTracks = await playlist.all_tracks();
 
-        return {songArr: await searchArrayOfTracksOnYoutube(spotifyTracks.map(track => convertSpotifyTrackToYoutubeTrack(track))), playlistTitle: playlist.name};
+        return {songArr: await searchArrayOfTracksOnYoutube((await playlist.all_tracks()).map(track => convertSpotifyTrackToYoutubeTrack(track))), playlistTitle: playlist.name};
     }
 
 }
@@ -125,7 +125,7 @@ async function searchTrackOnYoutube(trackName) {
     try {
 
         // let result = (await ytsr(search_query, { safeSearch: false, limit: 20})).items.filter(value => value.type === 'video');
-        const result = await playdl.search(trackName, { source : { youtube : "genericvideo" }, limit: 5, fuzzy: true, language: 'pt-PT' });
+        const result = await playdl.search(trackName, { source : { youtube : "genericvideo" }, limit: 1, fuzzy: true, language: 'pt-PT' });
 
         if (result.length === 0)
             return null;
@@ -154,7 +154,7 @@ async function searchArrayOfTracksOnYoutube(trackArray) {
         let promiseArr = [];
         let songArr = [];
         for (const trackName of trackArray) {
-            promiseArr.push(playdl.search(trackName, { source : { youtube : "genericvideo" }, limit: 5, fuzzy: true, language: 'pt-PT' }));
+            promiseArr.push(playdl.search(trackName, { source : { youtube : "genericvideo" }, limit: 1, fuzzy: true, language: 'pt-PT' }));
             // let result = (await ytsr(search_query, { safeSearch: false, limit: 20})).items.filter(value => value.type === 'video');
         }
 
