@@ -2,7 +2,6 @@
 const fs = require('fs');
 const playdlAuth = require('./models/playdlAuth');
 const path = require('path');
-require('./mongo');
 
 const basePath = path.join(__dirname, '..', '.data',);
 

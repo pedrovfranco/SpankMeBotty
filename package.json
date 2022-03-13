@@ -38,6 +38,7 @@
     "mongoose": "^6.1.2",
     "sodium": "^3.0.2",
     "play-dl": "https://github.com/pedrovfranco/play-dl.git",
+    "simple-oauth2": "^4.3.0",
     "workerpool": "^6.0.0",
     "ytdl-core": "^4.10.1",
     "ytpl": "^2.2.3",
