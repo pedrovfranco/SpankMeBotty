@@ -32,22 +32,22 @@ module.exports = {
             return;
         }
 
-        const successMsg = `Removed song from position ${startIndex} of the music queue.`;
-
+        const successMsg = { content: `Removed song from position ${index} of the music queue.` };
+        const failMsg = { content: `Failed to remove song from position ${index} of the music queue.`, ephemeral: true };
         if (index === 1) {
-            if (await music.skipCurrentSong(music.getGuild(interaction))) {
-                interaction.reply({ content: successMsg });
+            if (await music.skipCurrentSong(guild)) {
+                interaction.reply(successMsg);
             }
             else {
-                interaction.reply({ content: `Failed to remove song from position ${startIndex} of the music queue.`, ephemeral: true });
+                interaction.reply(failMsg);
             }
         }
         else {
             if (music.remove(guild, index-1)) {
-                interaction.reply({ content: successMsg });
+                interaction.reply(successMsg);
             }
             else {
-                interaction.reply({ content: `Failed to remove song from position ${startIndex} of the music queue.`, ephemeral: true });
+                interaction.reply(failMsg);
             }
         }
     }
