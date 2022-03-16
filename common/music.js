@@ -615,6 +615,17 @@ exports.move = (guild, startIndex, endIndex) => {
     }
 }
 
+exports.remove = (guild, index) => {
+    try {
+        guild.queue.splice(index, 1);
+        return true;
+    }
+    catch (err) {
+        console.error(err);
+        return false;
+    }
+}
+
 exports.seek = (guild, newPosition) => {
 
     if (guild?.queue?.length == null || guild.queue.length === 0)
