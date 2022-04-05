@@ -22,8 +22,21 @@ const reactions = {
 const maxTitleLength = 41;
 const maxQueueSize = 10;
 
-const handleReaction = (reaction, state) => {
-    switch(reaction) {
+const handleReaction = async (reaction, state) => {
+    const reactionUserIds = (await reaction.users.fetch()).map(u => u.id);
+    const isSelf = !reactionUserIds.some(id => id !== state.botId);
+    if (isSelf) {
+      return;
+    }
+
+    for (let i = 0; i < reactionUserIds.length; i++) {
+      const userId = reactionUserIds[i];
+      if (userId !== state.botId) {
+        await reaction.users.remove(userId);
+      }
+    }
+
+    switch(reaction.emoji.name) {
         case reactions.DOWN:
             state.from = (state.from + maxQueueSize) >= state.guild.queue.length ?
                 state.guild.queue.length - maxQueueSize < 0 ?
@@ -126,13 +139,11 @@ module.exports = {
     ,
 
     async execute(interaction) {
-
         const createCollector = (message, state) => {
             const filter = (reaction, _) => Object.values(reactions).includes(reaction.emoji.name);
 
             const collector = message.createReactionCollector({filter, dispose: true});
-            collector.on('collect', r => handleReaction(r.emoji.name, state));
-            collector.on('remove', r => handleReaction(r.emoji.name, state));
+            collector.on('collect', r => handleReaction(r, state));
         }
 
         let guild = music.getGuild(interaction);
@@ -143,6 +154,7 @@ module.exports = {
         }
 
         let state = {
+            botId: interaction.applicationId,
             guild,
             interaction,
             from: guild.playing < 0 ? 0 : guild.playing
@@ -152,13 +164,12 @@ module.exports = {
 
         interaction.reply({content: result, fetchReply: true})
             .then(async (message) => {
-                Promise.all([
-                    message.react(reactions.TOP),
-                    message.react(reactions.UP),
-                    message.react(reactions.PLAYING),
-                    message.react(reactions.DOWN),
-                    message.react(reactions.BOTTOM)
-                ]).then(() => createCollector(message, state))
+              createCollector(message, state);
+              message.react(reactions.TOP);
+              message.react(reactions.UP);
+              message.react(reactions.PLAYING);
+              message.react(reactions.DOWN);
+              message.react(reactions.BOTTOM);
             })
             .catch(console.error);
     }
