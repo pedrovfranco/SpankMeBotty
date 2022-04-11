@@ -175,7 +175,7 @@ async function playNextSong(interaction, guild) {
 
             let connection = getVoiceConnection(guild.guildId);
 
-            if (connection == null) {
+            if (connection == null || connection.state === VoiceConnectionStatus.Destroyed) {
                 // From https://discordjs.guide/voice/voice-connections.html#cheat-sheet
                 // If you try to call joinVoiceChannel on another channel in the same guild in which there is already an active voice connection, the existing voice connection switches over to the new channel.
                 connection = joinVoiceChannel({
@@ -290,7 +290,7 @@ exports.playTTS = async (interaction, guild, readStream, callback = null) => {
 
         let connection = getVoiceConnection(guild.guildId);
 
-        if (connection == null) {
+        if (connection == null || connection.state === VoiceConnectionStatus.Destroyed) {
             // From https://discordjs.guide/voice/voice-connections.html#cheat-sheet
             // If you try to call joinVoiceChannel on another channel in the same guild in which there is already an active voice connection, the existing voice connection switches over to the new channel.
             connection = joinVoiceChannel({
@@ -541,7 +541,7 @@ exports.changeVolume = (guild, new_volume, saveToDB)  => {
 exports.destroyGuildConnection = async (guild) => {
     const connection = getVoiceConnection(guild.guildId);
 
-    if (connection == null)  {
+    if (connection == null || connection.state === VoiceConnectionStatus.Destroyed)  {
         return false;
     }
 
