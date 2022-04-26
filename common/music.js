@@ -551,10 +551,10 @@ exports.destroyGuildConnection = async (guild) => {
     connection.destroy();
     exports.guilds[guild.guildId].voiceConnection = undefined;
 
-    exports.guilds[guild.guildId].audioPlayer.stop();
+    exports.guilds[guild.guildId]?.audioPlayer?.stop();
     exports.guilds[guild.guildId].audioPlayer = undefined;
 
-    exports.guilds[guild.guildId].ttsAudioPlayer.stop();
+    exports.guilds[guild.guildId]?.ttsAudioPlayer?.stop();
     exports.guilds[guild.guildId].ttsAudioPlayer = undefined;
 
     exports.guilds[guild.guildId].queue = [];
