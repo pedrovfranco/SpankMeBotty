@@ -18,6 +18,7 @@ const DEBUG_WORKER = false;
 const musicDirectory = path.join(__dirname, '..', 'music_files');
 const pool = workerpool.pool(path.join(__dirname, 'music_worker.js'), {maxWorkers: 4, workerType: 'thread'});
 exports.maxYtdlRetries = 3;
+const defaultMusicVolume = 0.2;
 
 
 exports.initialize = async () => {
@@ -51,7 +52,7 @@ exports.addGuild = (interaction) => {
         guild.playing = -1;
         guild.paused = false;
         guild.guildId = guildId;
-        guild.volume = 1.0;
+        guild.volume = defaultMusicVolume;
 
         guild.voiceConnection;
         guild.audioPlayer;
@@ -550,8 +551,17 @@ exports.destroyGuildConnection = async (guild) => {
     connection.destroy();
     exports.guilds[guild.guildId].voiceConnection = undefined;
 
-    exports.guilds[guild.guildId].audioPlayer.stop();
+    exports.guilds[guild.guildId]?.audioPlayer?.stop();
     exports.guilds[guild.guildId].audioPlayer = undefined;
+
+    exports.guilds[guild.guildId]?.ttsAudioPlayer?.stop();
+    exports.guilds[guild.guildId].ttsAudioPlayer = undefined;
+
+    exports.guilds[guild.guildId].queue = [];
+    exports.guilds[guild.guildId].playing = -1;
+    exports.guilds[guild.guildId].paused = false;
+
+    exports.guilds[guild.guildId].currentStream  = null;
 
     return true;
 };
