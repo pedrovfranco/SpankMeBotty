@@ -1,4 +1,4 @@
-const axios = require('axios').default;
+const axios = require('axios');
 
 const common = require('../common/common');
 const InygonAnnounceList = require('../database/models/inygonAnnounceList');
