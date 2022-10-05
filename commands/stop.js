@@ -26,6 +26,6 @@ module.exports = {
 			return;
 		}
 
-		music.stop();
+		music.stop(guild);
 	}
 }
