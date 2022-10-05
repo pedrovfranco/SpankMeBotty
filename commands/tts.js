@@ -1,16 +1,6 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
+const { SlashCommandBuilder } = require('discord.js');
 
 const common = require('../common/common');
-
-
-// module.exports = {
-// 	name: 'tts',
-//     description: 'Voices your tts message with british brian',
-//     args: true,
-//     minargs: 1,
-//     usage: '<text>',
-// 	execute
-// };
 
 
 module.exports = {	

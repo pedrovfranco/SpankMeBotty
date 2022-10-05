@@ -1,5 +1,4 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
-const { Permissions } = require('discord.js');
+const { SlashCommandBuilder, PermissionsBitField  } = require('discord.js');
 
 const Permission = require('../database/models/permission');
 
@@ -33,7 +32,7 @@ module.exports = {
 		let roleName = interaction.options.getString('role_name');
 		let permissionType = interaction.options.getString('permission_type');
 
-		if (!interaction.member.permissions.has(Permissions.FLAGS.MANAGE_ROLES)) {
+		if (!interaction.member.permissions.has(PermissionsBitField.Flags.ManageRoles)) {
 			interaction.reply('You require permission to manage roles in this server to use that command!');
 			return;
 		}

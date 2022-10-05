@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
+const { SlashCommandBuilder } = require('discord.js');
 
 const common = require('../common/common');
 const InygonAnnounceList = require('../database/models/inygonAnnounceList');

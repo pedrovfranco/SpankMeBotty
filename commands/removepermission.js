@@ -1,5 +1,4 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
-const { Permissions } = require('discord.js');
+const { SlashCommandBuilder, PermissionsBitField  } = require('discord.js');
 
 const Permission = require('../database/models/permission');
 
@@ -29,7 +28,7 @@ module.exports = {
 
 	async execute(interaction) {
 
-		if (!interaction.member.permissions.has(Permissions.FLAGS.MANAGE_ROLES)) {
+		if (!interaction.member.permissions.has(PermissionsBitField.Flags.ManageRoles)) {
 			interaction.reply('You require permission to manage roles to use that command!');
 			return;
 		}

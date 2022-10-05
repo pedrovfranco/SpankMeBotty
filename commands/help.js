@@ -1,5 +1,5 @@
 const common = require('../common/common');
-const { SlashCommandBuilder } = require('@discordjs/builders');
+const { SlashCommandBuilder } = require('discord.js');
 
 // module.exports = {
 // 	name: 'help',

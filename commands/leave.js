@@ -1,7 +1,7 @@
 const common = require('../common/common');
 const music = require('../common/music');
 
-const { SlashCommandBuilder } = require('@discordjs/builders');
+const { SlashCommandBuilder } = require('discord.js');
 
 // module.exports = {
 // 	name: 'leave',
