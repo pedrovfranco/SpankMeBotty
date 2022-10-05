@@ -1,12 +1,15 @@
+'use strict'
 const workerpool = require('workerpool');
 // const ytdl = require('ytdl-core');
 // const ytsr = require('ytsr');
 // const ytpl = require('ytpl');
 const playdl = require('play-dl');
+const { performance } = require('perf_hooks');
 
 const music = require('./music');
 
-const maxPlaylistSize = 2000;
+const maxPlaylistSize = 1000;
+const maxYoutubeSearchBatchSize = 100;
 
 exports.getSong = getSong;
 
@@ -150,26 +153,47 @@ async function searchTrackOnYoutube(trackName) {
 
 async function searchArrayOfTracksOnYoutube(trackArray) {
     try {
+        var startTime = performance.now();
 
-        let promiseArr = [];
-        let songArr = [];
-        for (const trackName of trackArray) {
-            promiseArr.push(playdl.search(trackName, { source : { youtube : "genericvideo" }, limit: 1, fuzzy: true, language: 'pt-PT' }));
-            // let result = (await ytsr(search_query, { safeSearch: false, limit: 20})).items.filter(value => value.type === 'video');
+        let values = [];
+        for (let i = 0; ; i++)
+        {
+            let startIndex = i*maxYoutubeSearchBatchSize;
+            let endIndex = (i+1)*maxYoutubeSearchBatchSize;
+
+            if (startIndex >= trackArray.length)
+                break;
+
+            if (endIndex >= trackArray.length)
+                endIndex = trackArray.length;
+
+            let tracksSlice = trackArray.slice(startIndex, endIndex);
+            let promiseArr = [];
+            for (const trackName of tracksSlice) {
+                promiseArr.push(playdl.search(trackName, { source : { youtube : "genericvideo" }, limit: 1, fuzzy: true, language: 'pt-PT' }));
+                // let result = (await ytsr(search_query, { safeSearch: false, limit: 20})).items.filter(value => value.type === 'video');
+            }
+    
+            values = values.concat(await Promise.allSettled(promiseArr));
         }
 
-        let values = await Promise.allSettled(promiseArr);
+        let songArr = [];
         let firstResult;
         for (const elem of values) {
             if (elem.status === 'fulfilled' && elem.value.length > 0) {
                 firstResult = elem.value[0];
-                
-                console.log(firstResult.title);
-                console.log(firstResult.url);
-        
                 songArr.push(generateSongObject(firstResult.url, firstResult.title, firstResult.durationInSec));
             }
+            else
+            {
+                console.log("erro");
+                console.log(JSON.stringify(elem));
+            }
         }
+
+        var endTime = performance.now()
+
+        console.log(`searchArrayOfTracksOnYoutube took ${endTime - startTime} milliseconds`)
 
         return songArr;
     }
