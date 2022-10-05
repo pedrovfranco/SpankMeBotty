@@ -1,5 +1,5 @@
 const fs = require('fs');
-const { REST } = require('@discordjs/rest');
+const { REST } = require('discord.js');
 const { Routes } = require('discord-api-types/v9');
 
 const commands = [];
