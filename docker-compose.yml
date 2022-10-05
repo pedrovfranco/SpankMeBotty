@@ -3,3 +3,5 @@ services:
   worker:
     build: .
     env_file: .env
+    image: gcr.io/spank-me-botty/spank-me-botty
+
