@@ -1,5 +1,5 @@
 const {createAudioPlayer, entersState, VoiceConnectionStatus, joinVoiceChannel, demuxProbe, createAudioResource, AudioPlayerStatus, getVoiceConnection} = require("@discordjs/voice");
-const { ChannelTypes } = require("discord.js/src/util/Constants");
+const { ChannelType } = require("discord.js");
 
 // const ytdl = require('ytdl-core');
 const playdl = require('play-dl');
@@ -78,15 +78,11 @@ exports.getGuild = (interaction) => {
 
 exports.addToQueue = async (interaction, search_query) => {
 
-    if (!(ChannelTypes[interaction.channel.type] === ChannelTypes.GUILD_TEXT || 
-        ChannelTypes[interaction.channel.type] === ChannelTypes.GUILD_VOICE || 
-        ChannelTypes[interaction.channel.type] === ChannelTypes.GUILD_CATEGORY || 
-        ChannelTypes[interaction.channel.type] === ChannelTypes.GUILD_NEWS || 
-        ChannelTypes[interaction.channel.type] === ChannelTypes.GUILD_STORE || 
-        ChannelTypes[interaction.channel.type] === ChannelTypes.GUILD_NEWS_THREAD || 
-        ChannelTypes[interaction.channel.type] === ChannelTypes.GUILD_PUBLIC_THREAD || 
-        ChannelTypes[interaction.channel.type] === ChannelTypes.GUILD_PRIVATE_THREAD || 
-        ChannelTypes[interaction.channel.type] === ChannelTypes.GUILD_STAGE_VOICE)) {
+    if (!(interaction.channel.type === ChannelType.GuildText || 
+    interaction.channel.type === ChannelType.GuildVoice || 
+    interaction.channel.type === ChannelType.GuildCategory || 
+    interaction.channel.type === ChannelType.GuildAnnouncement || 
+    interaction.channel.type === ChannelType.GuildStageVoice)) {
         interaction.reply('Wrong channel, must be in a server (No DMs or group chats)');
         return;
     }
