@@ -125,9 +125,11 @@ exports.addToQueue = async (interaction, search_query) => {
                 if (playlistTitle == null) {
                     if (videoList.length === 1)
                         interaction.editReply('Added: \"' + videoList[0].title + '\" to the music queue');
+                        console.log('Added: \"' + videoList[0].title + '\" to the music queue');
                 }
                 else {
                     interaction.editReply('Added playlist: \"' + playlistTitle + '\" with ' + videoList.length + ' songs to the music queue');
+                    console.log('Added playlist: \"' + playlistTitle + '\" with ' + videoList.length + ' songs to the music queue');
                 }
             }
             catch (err) {
