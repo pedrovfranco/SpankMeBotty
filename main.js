@@ -1,4 +1,4 @@
-const {Client, Intents, Collection} = require('discord.js');
+const {Client, GatewayIntentBits, Partials, Collection} = require('discord.js');
 const { generateDependencyReport } = require('@discordjs/voice');
 
 const fs = require('fs');
@@ -27,16 +27,16 @@ function printEnvVariables() {
 function startClient() {
 	let client = new Client({
 		intents: [
-			Intents.FLAGS.DIRECT_MESSAGE_TYPING,
-			Intents.FLAGS.DIRECT_MESSAGE_REACTIONS,
-			Intents.FLAGS.DIRECT_MESSAGES,
-			Intents.FLAGS.GUILD_MESSAGE_TYPING,
-			Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
-			Intents.FLAGS.GUILD_MESSAGES,
-			Intents.FLAGS.GUILD_VOICE_STATES,
-			Intents.FLAGS.GUILD_EMOJIS_AND_STICKERS,
-			Intents.FLAGS.GUILD_BANS,
-			Intents.FLAGS.GUILDS,
+			GatewayIntentBits.DirectMessageTyping,
+			GatewayIntentBits.DirectMessageReactions,
+			GatewayIntentBits.DirectMessages,
+			GatewayIntentBits.GuildMessageTyping,
+			GatewayIntentBits.GuildMessageReactions,
+			GatewayIntentBits.GuildMessages,
+			GatewayIntentBits.GuildVoiceStates,
+			GatewayIntentBits.GuildEmojisAndStickers,
+			GatewayIntentBits.GuildBans,
+			GatewayIntentBits.Guilds,
 		]
 	});
 
