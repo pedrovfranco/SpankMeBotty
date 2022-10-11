@@ -1,0 +1,1 @@
+docker compose logs --follow --timestamps
