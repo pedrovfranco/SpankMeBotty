@@ -57,9 +57,9 @@ export async function UploadAuth() {
 export async function GetAuthFromDb() {
     try {
         let result = await playdlAuth.findOne({}).orFail();
-        fs.mkdirSync(basePath, {recursive: true});
 
         if (saveToFiles) {
+            fs.mkdirSync(basePath, {recursive: true});
             if (result.spotifyAuth != null) {
                 fs.writeFileSync(path.join(basePath, 'spotify.data'), result.spotifyAuth, {encoding: 'utf8'});
             }
