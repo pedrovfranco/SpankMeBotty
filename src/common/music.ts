@@ -637,9 +637,10 @@ export async function destroyGuildConnection(guildId: string): Promise<boolean> 
     }
 
     console.log("Destroying guild voice connection, guildid = " + guildId);
-
-    connection.destroy();
-    guildData.voiceConnection?.destroy();
+    
+    if (guildData.voiceConnection != null && guildData.voiceConnection.state.status !== VoiceConnectionStatus.Destroyed)  {
+        guildData.voiceConnection?.destroy();
+    }
 
     guildData.audioPlayer?.stop();
     guildData.connectionSubscription?.unsubscribe();
