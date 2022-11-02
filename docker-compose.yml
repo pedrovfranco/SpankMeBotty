@@ -6,4 +6,4 @@ services:
     environment:
       - NODE_ENV=${NODE_ENV}
     image: gcr.io/spank-me-botty/spank-me-botty
-
+    restart: on-failure
