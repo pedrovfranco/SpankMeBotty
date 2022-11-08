@@ -26,12 +26,9 @@ function fetchEnvVariables()
 }
 
 function printEnvVariables() {
-
-	
 	console.log('NODE_ENV=' + process.env.NODE_ENV);
 	console.log('RECOGNIZER_KEYWORDS=' + process.env.RECOGNIZER_KEYWORDS);
 	console.log(`DISCORD_TOKEN = ${process.env.DISCORD_TOKEN}`);
-
 }
 
 function startClient() {
