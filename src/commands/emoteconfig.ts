@@ -2,6 +2,7 @@ import { SlashCommandBuilder, ChatInputCommandInteraction, User } from 'discord.
 import fs from 'fs';
 import path from 'path';
 import download from 'image-downloader';
+import imageType from 'image-type';
 
 import Emote from '../database/models/emote';
 
@@ -99,9 +100,22 @@ async function handleRegister(interaction: ChatInputCommandInteraction, emoteLin
         interaction.reply('An emote with that name already exists in this server!');
     })
     .catch(() => {
+
+        if (interaction.guild?.id == undefined) {
+            return;
+        }
+
+        let folderPath = path.join(__dirname, '..', 'emotes', interaction.guild.id);
+		let filePath = path.join(folderPath, emoteName + '.tmp');
+
+		if (!fs.existsSync(folderPath)) {
+			// Creates directory recursively
+			fs.mkdirSync(folderPath, { recursive: true});
+		}	
+
         download.image({
             url: emoteLink,
-            dest: path.join(__dirname, '..', 'emotes', emoteName) + '.tmp'
+            dest: filePath
         })
         .then(async ({ filename }) => {
 
@@ -115,9 +129,7 @@ async function handleRegister(interaction: ChatInputCommandInteraction, emoteLin
                     return;
                 }
 
-                const imageType = await import('image-type');
-
-                const imageInfo = await imageType.default(data);
+                const imageInfo = imageType(data);
 
                 if (imageInfo == undefined) {
                     interaction.reply("That doesn't look like an image...");

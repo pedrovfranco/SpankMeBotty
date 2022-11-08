@@ -32,6 +32,7 @@ function startClient() {
 			GatewayIntentBits.GuildMessageTyping,
 			GatewayIntentBits.GuildMessageReactions,
 			GatewayIntentBits.GuildMessages,
+			GatewayIntentBits.MessageContent,
 			GatewayIntentBits.GuildVoiceStates,
 			GatewayIntentBits.GuildEmojisAndStickers,
 			GatewayIntentBits.GuildBans,

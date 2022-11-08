@@ -48,19 +48,20 @@ export function sendEmote(interaction: ChatInputCommandInteraction | Message<boo
 		if (interaction.guild == undefined) {
 			return;
 		}
-	
-		let filepath = path.join('emotes', interaction.guild.id, result.filename);
 		
-		if (!fs.existsSync(filepath)) {
+		let folderPath = path.join(__dirname, '..', 'emotes', interaction.guild.id);
+		let filePath = path.join(folderPath, result.filename);
+		
+		if (!fs.existsSync(filePath)) {
 			// Creates directory recursively
-			fs.mkdirSync(path.join('emotes', interaction.guild.id), { recursive: true});
+			fs.mkdirSync(folderPath, { recursive: true});
 
-			fs.writeFileSync(filepath, result.data, {encoding: 'binary'});
+			fs.writeFileSync(filePath, result.data, {encoding: 'binary'});
 		}	
 
 		interaction.reply({
 			files: [{
-				attachment: filepath,
+				attachment: filePath,
 			}]
 		})
 		.then((res) => {
