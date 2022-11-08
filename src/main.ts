@@ -3,9 +3,7 @@ import { generateDependencyReport } from '@discordjs/voice';
 import fs from 'fs';
 import path from 'path';
 
-if (require('dotenv').config().error) {
-	console.error("Failed to load .env file!");
-}
+fetchEnvVariables();
 
 require('./database/mongo');
 import GuildSettings from './database/models/guildSettings';
@@ -16,7 +14,20 @@ import { register } from './deploy-commands';
 import { checkForStream } from './routines/inygonAnnouncer';
 
 
+function fetchEnvVariables()
+{
+	if (require('dotenv').config().error) {
+		console.error("Failed to load .env file!");
+	}
+	
+	if (process.env.NODE_ENV !== 'development' && process.env.NODE_ENV !== 'production') {
+		process.env.NODE_ENV = 'development';
+	}
+}
+
 function printEnvVariables() {
+
+	
 	console.log('NODE_ENV=' + process.env.NODE_ENV);
 	console.log('RECOGNIZER_KEYWORDS=' + process.env.RECOGNIZER_KEYWORDS);
 	console.log(`DISCORD_TOKEN = ${process.env.DISCORD_TOKEN}`);
@@ -99,7 +110,6 @@ function printDicordjsVoiceDependencyReport() {
 }
 
 async function main() {
-
 	printEnvVariables();
 
 	let client = startClient();
