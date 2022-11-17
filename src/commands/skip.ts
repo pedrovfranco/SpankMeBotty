@@ -12,6 +12,8 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
 		return;
 	}
 
+    interaction.deferReply();
+
     if (await skipCurrentSong(interaction.guild.id)) {
         interaction.reply('Skipped');
     }
