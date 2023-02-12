@@ -12,13 +12,13 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
 		return;
 	}
 
-    interaction.deferReply();
+    await interaction.deferReply();
 
     if (await skipCurrentSong(interaction.guild.id)) {
-        interaction.reply('Skipped');
+        await interaction.editReply('Skipped');
     }
     else {
-        interaction.reply('The queue is empty!');
+        await interaction.editReply('The queue is empty!');
     }
 
 }
