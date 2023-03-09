@@ -38,7 +38,7 @@ RUN npm run clean
 RUN npm run build
 
 # RUN rm -rf node_modules
-RUN npm ci --production
+RUN npm ci --omit=dev
 
 
 # CMD ["dumb-init", "npm", "start"]
