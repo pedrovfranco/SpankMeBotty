@@ -3,6 +3,7 @@ import axios from 'axios';
 import { registerTwitchToken, twitchToken } from '../common/common';
 import { discordClient } from '../commandsProcessor';
 import InygonAnnounceList, { IInygonAnnounceList } from '../database/models/inygonAnnounceList';
+import { TextChannel } from 'discord.js';
 
 let streams = [{ name: 'inygontv1', live: false }, { name: 'inygontv2', live: false }, { name: 'inygontv3', live: false }];
 let firstRun = true;
@@ -106,7 +107,7 @@ export async function checkForStream() {
                 // Send announceStr to announcements channel
                 discordClient?.channels.fetch('754500520936341576')
                     .then(channel =>  {
-                        if (channel?.isTextBased()) {
+                        if (channel instanceof TextChannel) {
                             channel.send(announceStr);
                         }
                     });

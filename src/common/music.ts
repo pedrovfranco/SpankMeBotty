@@ -1,5 +1,5 @@
 import { createAudioPlayer, entersState, VoiceConnectionStatus, joinVoiceChannel, demuxProbe, createAudioResource, AudioPlayerStatus, getVoiceConnection, VoiceConnection, AudioPlayer, StreamType, AudioResource, PlayerSubscription, VoiceConnectionState, AudioPlayerError } from '@discordjs/voice';
-import { ChannelType, ChatInputCommandInteraction, GuildMember, Guild } from 'discord.js';
+import { ChannelType, ChatInputCommandInteraction, GuildMember, Guild, TextChannel } from 'discord.js';
 
 import playdl from 'play-dl';
 import { YouTubeStream } from 'play-dl';
@@ -180,7 +180,7 @@ export async function addToQueue(interaction : ChatInputCommandInteraction, sear
         .then(async function(result: MusicWorkerResult | undefined) {
             await handleMusicWorkerResult(interaction, guildData, result);
         })
-        .catch(err => {
+        .catch((err : Error) => {
             console.log(err);
         });
     }
@@ -226,7 +226,7 @@ async function playNextSong(guildId: string) : Promise<boolean> {
     let guildData = addGuild(guildId);
     let interaction = guildData.lastInteraction;
 
-    if (interaction == null || interaction.channel == null || guildData.guild == null || guildData.voiceChannelId == null) {
+    if (interaction == null || interaction.channel == null || !(interaction.channel instanceof TextChannel)  || guildData.guild == null || guildData.voiceChannelId == null) {
         console.error('No interaction to play next song, failing.');
         return false;
     }
@@ -266,7 +266,7 @@ async function playNextSong(guildId: string) : Promise<boolean> {
                 connection = newConnection;
 
                 // Checks to see if a voice connection got disconnected because either the bot was kicked or it just switched channels
-                newConnection.on(VoiceConnectionStatus.Disconnected, async (oldState, newState) => {
+                newConnection.on(VoiceConnectionStatus.Disconnected, async (/* oldState, newState */) => {
                     try {
                         await Promise.race([
                             entersState(newConnection, VoiceConnectionStatus.Signalling, 5000),
