@@ -1,9 +1,9 @@
-FROM node:17.0.1-buster
+FROM node:18.15.0-buster-slim
 # FROM node:14-alpine
 
 # Install OS deps
 RUN apt-get update
-RUN apt-get dist-upgrade -y
+# RUN apt-get dist-upgrade -y
 RUN apt-get autoremove -y
 RUN apt-get autoclean
 RUN apt-get -y install dirmngr curl software-properties-common locales git cmake
@@ -18,10 +18,10 @@ RUN locale-gen
 ENV LANG en_US.UTF-8
 ENV LC_ALL en_US.UTF-8
 
-EXPOSE 5000
-EXPOSE $PORT
-EXPOSE 80
-EXPOSE 443
+# EXPOSE 5000
+# EXPOSE $PORT
+# EXPOSE 80
+# EXPOSE 443
 
 WORKDIR /usr/src/app
 
