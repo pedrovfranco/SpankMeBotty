@@ -1,8 +1,6 @@
 FROM node:17.0.1-buster
 # FROM node:14-alpine
 
-# ENV NODE_ENV production
-
 # Install OS deps
 RUN apt-get update
 RUN apt-get dist-upgrade -y
@@ -28,12 +26,21 @@ EXPOSE 443
 WORKDIR /usr/src/app
 
 COPY package*.json ./
+COPY tsconfig*.json ./
 
-RUN npm update
+RUN npm ci --development
 
 # Add your source files
 COPY . .
 
+# Build Typescript
+RUN npm run clean
+RUN npm run build
+
+# RUN rm -rf node_modules
+RUN npm ci --production
 
 
 # CMD ["dumb-init", "npm", "start"]
+# CMD ["npm", "start"]
+CMD ["dumb-init", "node", "./lib/main.js"]

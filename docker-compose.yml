@@ -3,5 +3,7 @@ services:
   worker:
     build: .
     env_file: .env
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
     image: gcr.io/spank-me-botty/spank-me-botty
-
+    restart: on-failure
