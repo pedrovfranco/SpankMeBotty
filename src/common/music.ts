@@ -278,6 +278,8 @@ async function playNextSong(guildId: string) : Promise<boolean> {
                         destroyGuildConnection(guildId);
                     }
                 });
+
+                applyKeepAliveHotfix(connection);
             }
 
             guildData.voiceConnection = connection;
@@ -294,7 +296,7 @@ async function playNextSong(guildId: string) : Promise<boolean> {
             let retryCount = 0;
             while (retryCount < exports.maxYtdlRetries) {
                 try {
-                    ytdlStream = await playdl.stream(link, { quality: 2, discordPlayerCompatibility: true });
+                    ytdlStream = await playdl.stream(link, { quality: 2, discordPlayerCompatibility: false });
                     break;
                 }
                 catch (e) {
@@ -387,7 +389,7 @@ export async function playTTS(interaction: ChatInputCommandInteraction, readStre
             connection = newConnection;
 
             // Checks to see if a voice connection got disconnected because either the bot was kicked or it just switched channels
-            newConnection.on(VoiceConnectionStatus.Disconnected, async (oldState, newState) => {
+            newConnection.on(VoiceConnectionStatus.Disconnected, async (/* oldState, newState */) => {
                 try {
                     await Promise.race([
                         entersState(newConnection, VoiceConnectionStatus.Signalling, 5000),
@@ -401,6 +403,8 @@ export async function playTTS(interaction: ChatInputCommandInteraction, readStre
                     exports.destroyGuildConnection(guildData);
                 }
             });
+
+            applyKeepAliveHotfix(connection);
         }
 
         guildData.voiceConnection = connection;
@@ -447,6 +451,23 @@ export async function playTTS(interaction: ChatInputCommandInteraction, readStre
     catch (err) {
         callback?.call(undefined, undefined, JSON.stringify(err));
     }
+}
+
+const networkStateChangeHandler = (oldNetworkState: any, newNetworkState: any) => {
+    const newUdp = Reflect.get(newNetworkState, 'udp');
+    clearInterval(newUdp?.keepAliveInterval);
+}
+
+
+function applyKeepAliveHotfix(voiceConnection: VoiceConnection) {
+      
+    voiceConnection.on('stateChange', (oldState, newState) => {
+        const oldNetworking = Reflect.get(oldState, 'networking');
+        const newNetworking = Reflect.get(newState, 'networking');
+        
+        oldNetworking?.off('stateChange', networkStateChangeHandler);
+        newNetworking?.on('stateChange', networkStateChangeHandler);
+    });
 }
 
 async function onAudioPlayerError(this: string, error: AudioPlayerError): Promise<boolean> {
