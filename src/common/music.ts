@@ -498,7 +498,7 @@ function createResource(stream: Readable | string, type: StreamType, inlineVolum
 async function onSongEnd(this: string, oldState: VoiceConnectionState, newState: VoiceConnectionState): Promise<void> {
     let guildId = this;
     
-    if (await exports.skipCurrentSong(guildId)) { 
+    if (await skipCurrentSong(guildId)) { 
         console.log("Song ended, playing next...");
     }
     else {
@@ -534,7 +534,7 @@ export async function skipCurrentSong(guildId: string): Promise<boolean> {
         return false;
     }
 
-    guildData.audioPlayer?.removeListener(AudioPlayerStatus.Idle, onSongEnd);
+    guildData.audioPlayer?.removeAllListeners(AudioPlayerStatus.Idle);
     guildData.queue.splice(guildData.playing, 1);
     guildData.audioPlayer?.pause();
 
