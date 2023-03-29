@@ -6,9 +6,12 @@ let url = `${process.env.DATABASE_URL}${dbName}?retryWrites=true&w=majority`;
 
 console.log("MongoDB URL: " + url);
 
+mongoose.set('strictQuery', true);
+
 mongoose.connect(url, { 
   serverSelectionTimeoutMS: 5000,
 });
+
 
 let db = mongoose.connection;
 
