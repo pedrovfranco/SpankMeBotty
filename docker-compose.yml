@@ -2,6 +2,7 @@ version: '3.9'
 services:
   worker:
     build: .
+    network_mode: host
     env_file: .env
     environment:
       - NODE_ENV=${NODE_ENV:-development}
