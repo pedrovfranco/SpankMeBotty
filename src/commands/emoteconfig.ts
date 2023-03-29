@@ -44,12 +44,14 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         return;
     }
 
+    interaction.deferReply();
+
     if (commandType === 'register') {
         let emoteLink = interaction.options.getString('emote_link');
         let emoteName = interaction.options.getString('emote_name');
 
         if (emoteLink == undefined || emoteName == undefined) {
-            interaction.reply('Something went wrong.')
+            interaction.editReply('Something went wrong.')
             console.error("emoteLink and emoteName must have a value, this should' happen as they are required");
             return;
         }
@@ -60,7 +62,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         let emoteName = interaction.options.getString('emote_name');
 
         if (emoteName == undefined) {
-            interaction.reply('Something went wrong.')
+            interaction.editReply('Something went wrong.')
             console.error(" emoteName must have a value, this should' happen as it is required");
             return;
         }
@@ -97,7 +99,7 @@ async function handleRegister(interaction: ChatInputCommandInteraction, emoteLin
 
     Emote.findOne({ name: emoteName, guildId: interaction.guild.id }).orFail()
     .then(() => {
-        interaction.reply('An emote with that name already exists in this server!');
+        interaction.editReply('An emote with that name already exists in this server!');
     })
     .catch(() => {
 
@@ -125,19 +127,19 @@ async function handleRegister(interaction: ChatInputCommandInteraction, emoteLin
                 let data = fs.readFileSync(filepath);
 
                 if (data.length > maxFileSize) {
-                    interaction.reply("The image is too big!");
+                    interaction.editReply("The image is too big!");
                     return;
                 }
 
                 const imageInfo = imageType(data);
 
                 if (imageInfo == undefined) {
-                    interaction.reply("That doesn't look like an image...");
+                    interaction.editReply("That doesn't look like an image...");
                     return;
                 }
 
                 if (interaction.guild == undefined || interaction.member?.user.id == undefined || !(interaction.member?.user instanceof User)) {
-                    interaction.reply('Something went wrong.');
+                    interaction.editReply('Something went wrong.');
                     return;
                 }
 
@@ -154,11 +156,11 @@ async function handleRegister(interaction: ChatInputCommandInteraction, emoteLin
                 newEmote.save()
                 .then(mapping => {
                     console.log('Saved ' + emoteName);
-                    interaction.reply('Saved ' + emoteName);
+                    interaction.editReply('Saved ' + emoteName);
                     fs.unlink(filepath, (err) => {
                         if (err) {
                             console.log(err);
-                            interaction.reply('Something went wrong.')
+                            interaction.editReply('Something went wrong.')
                             return;
                         }
                     });
@@ -174,19 +176,19 @@ async function handleRegister(interaction: ChatInputCommandInteraction, emoteLin
                         console.log(err);
                     }
 
-                    interaction.reply(errorMsg);
+                    interaction.editReply(errorMsg);
                 });
                 
             }
             catch (err) {
                 console.log(err);
-                interaction.reply('Something went wrong.')
+                interaction.editReply('Something went wrong.')
                 return;
             }
         })
         .catch((err) => {
             console.log(err);
-            interaction.reply('Something went wrong.')
+            interaction.editReply('Something went wrong.')
         });
     })
 }
@@ -194,24 +196,24 @@ async function handleRegister(interaction: ChatInputCommandInteraction, emoteLin
 async function handleRemove(interaction: ChatInputCommandInteraction, emoteName: string) {
     
     if (interaction.guild == undefined) {
-        interaction.reply('Something went wrong.');
+        interaction.editReply('Something went wrong.');
         return;
     }
 
     Emote.findOneAndDelete({ name: emoteName, guildId: interaction.guild.id}).orFail()
     .then(result => {
-        interaction.reply('Removed emote ' + result.name);
+        interaction.editReply('Removed emote ' + result.name);
     })
     .catch(err => {
         console.log(err);
-        interaction.reply('Emote does not exist!');
+        interaction.editReply('Emote does not exist!');
     })
 }
 
 export async function handleList(interaction: ChatInputCommandInteraction) {
     
     if (interaction.guild == undefined) {
-        interaction.reply('Something went wrong.');
+        interaction.editReply('Something went wrong.');
         return;
     }
 
@@ -237,10 +239,10 @@ export async function handleList(interaction: ChatInputCommandInteraction) {
             list += '\`'
         }
 
-        interaction.reply(list);
+        interaction.editReply(list);
     })
     .catch(err => {
         console.log(err);
-        interaction.reply("Something went wrong!");
+        interaction.editReply("Something went wrong!");
     })
 }
