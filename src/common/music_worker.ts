@@ -2,12 +2,16 @@ import workerpool from 'workerpool';
 import {validate, video_basic_info, playlist_info, spotify, search, SpotifyPlaylist, SpotifyAlbum, SpotifyTrack, YouTubeVideo } from 'play-dl';
 import { performance } from 'perf_hooks';
 
-import { refreshCredentialsIfNecessary, maxYtdlRetries, QueueItem, MusicWorkerResult, DEBUG_WORKER } from './music';
+import { refreshCredentialsIfNecessary, maxYtdlRetries, QueueItem, MusicWorkerResult, DEBUG_WORKER, directStreamMacro } from './music';
 
 const maxPlaylistSize = 1000;
 const maxYoutubeSearchBatchSize = 100;
 
 export async function getSong(search_query: string): Promise<MusicWorkerResult | undefined> {
+
+    if (search_query.startsWith(directStreamMacro)) {
+        return new MusicWorkerResult([new QueueItem(search_query, 'DirectStream', 0)]);
+    }
 
     await refreshCredentialsIfNecessary();
 

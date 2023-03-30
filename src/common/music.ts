@@ -60,6 +60,7 @@ export class GuildMusicData {
 
 export let maxYtdlRetries = 3;
 export const DEBUG_WORKER = true;
+export const directStreamMacro = 'direct://';
 
 const pool = workerpool.pool(path.join(__dirname, 'music_worker.js'), {maxWorkers: 4, workerType: 'thread'});
 const defaultMusicVolume = 0.2;
@@ -250,6 +251,7 @@ async function playNextSong(guildId: string) : Promise<boolean> {
 
             const video = guildData.queue[0];
             const link = video.link;
+            const directStream = link.startsWith(directStreamMacro);
 
             let connection = getVoiceConnection(guildData.guildId);
 
@@ -293,31 +295,37 @@ async function playNextSong(guildId: string) : Promise<boolean> {
             }
 
             let ytdlStream: YouTubeStream | undefined = undefined;
+            let resource: AudioResource;
             let retryCount = 0;
-            while (retryCount < exports.maxYtdlRetries) {
-                try {
-                    ytdlStream = await playdl.stream(link, { quality: 2, discordPlayerCompatibility: false });
-                    break;
+            if (!directStream) {
+                while (retryCount < exports.maxYtdlRetries) {
+                    try {
+                        ytdlStream = await playdl.stream(link, { quality: 2, discordPlayerCompatibility: false });
+                        break;
+                    }
+                    catch (e) {
+                        retryCount++;
+                        let deltaRetries = exports.maxYtdlRetries - retryCount;
+                        console.log('Exception raised when using ytdl, remaning retries: ' + deltaRetries);
+                        console.log(e);
+                    }
                 }
-                catch (e) {
-                    retryCount++;
-                    let deltaRetries = exports.maxYtdlRetries - retryCount;
-                    console.log('Exception raised when using ytdl, remaning retries: ' + deltaRetries);
-                    console.log(e);
+
+                if (ytdlStream == undefined) {
+                    let errMsg = 'Failed to play this song, something went wrong.';
+                    console.log(errMsg);
+                    interaction.channel.send(errMsg);
+                    exports.skipCurrentSong(guildData);
+                    return false;
                 }
+
+                guildData.currentStream = ytdlStream;
+                resource = createResource(ytdlStream.stream, ytdlStream.type, true, video.title);
             }
-
-            if (ytdlStream == undefined) {
-                let errMsg = 'Failed to play this song, something went wrong.';
-                console.log(errMsg);
-                interaction.channel.send(errMsg);
-                exports.skipCurrentSong(guildData);
-                return false;
+            else {
+                resource = createResource(link.substring(directStreamMacro.length), StreamType.Arbitrary, true, video.title);
             }
-
-            guildData.currentStream = ytdlStream;
-
-            const resource = createResource(ytdlStream.stream, ytdlStream.type, true, video.title);
+    
             guildData.audioPlayerResource = resource;
             resource?.volume?.setVolume(guildData.volume);
 
