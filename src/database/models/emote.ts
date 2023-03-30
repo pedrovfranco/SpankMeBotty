@@ -1,4 +1,5 @@
-import {Schema, model } from 'mongoose';
+import { Schema, Model, model } from 'mongoose';
+import { clearCache } from '../mongo';
 
 interface IEmote {
 	name: string,
@@ -8,8 +9,12 @@ interface IEmote {
 	creator: string,
 };
 
+interface EmoteModel extends Model<IEmote> {
+	clearCache(): void;
+}
+  
 // The Primary Key for an emote would be a pair of {name, guildId}
-const emoteSchema = new Schema<IEmote>(
+const emoteSchema = new Schema<IEmote, EmoteModel>(
 	{
 		name: { type: String, required: true },
 		guildId: { type: String, required: true },
@@ -24,7 +29,14 @@ const emoteSchema = new Schema<IEmote>(
 
 emoteSchema.index({guildId: 1, name: 1}, {unique: true});
 
-export default model<IEmote>(
+let exportModel = model<IEmote, EmoteModel>(
 	'emote',
 	emoteSchema,
 );
+
+emoteSchema.static('clearCache', () => {
+	clearCache(exportModel.collection.name);
+});
+
+
+export default exportModel;

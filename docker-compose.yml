@@ -9,3 +9,17 @@ services:
       - NODE_ENV=${NODE_ENV:-development}
     # image: gcr.io/spank-me-botty/spank-me-botty
     restart: on-failure
+
+  redis:
+    container_name: redis
+    image: redis/redis-stack
+    env_file: .env
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+    restart: on-failure
+    ports:
+      - 6379:6379
+      - 8001:8001
+    volumes:
+      - ./redis-data/:/data
+      

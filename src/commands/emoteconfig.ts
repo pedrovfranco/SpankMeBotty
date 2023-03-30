@@ -97,7 +97,7 @@ async function handleRegister(interaction: ChatInputCommandInteraction, emoteLin
         }
     }
 
-    Emote.findOne({ name: emoteName, guildId: interaction.guild.id }).orFail()
+    Emote.findOne({ name: emoteName, guildId: interaction.guild.id }).cache().orFail()
     .then(() => {
         interaction.editReply('An emote with that name already exists in this server!');
     })
@@ -164,6 +164,8 @@ async function handleRegister(interaction: ChatInputCommandInteraction, emoteLin
                             return;
                         }
                     });
+
+                    Emote.clearCache();
                 })
                 .catch(err => {
                     let errorMsg = 'Failed to save ' + emoteName;
@@ -203,6 +205,7 @@ async function handleRemove(interaction: ChatInputCommandInteraction, emoteName:
     Emote.findOneAndDelete({ name: emoteName, guildId: interaction.guild.id}).orFail()
     .then(result => {
         interaction.editReply('Removed emote ' + result.name);
+        Emote.clearCache();
     })
     .catch(err => {
         console.log(err);
@@ -217,7 +220,7 @@ export async function handleList(interaction: ChatInputCommandInteraction) {
         return;
     }
 
-    Emote.find({guildId: interaction.guild.id})
+    Emote.find({guildId: interaction.guild.id}).cache()
     .then(mappings => {
 
         let list = 'Emotes:';

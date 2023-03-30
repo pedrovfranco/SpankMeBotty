@@ -35,6 +35,7 @@
     "image-type": "4.1.0",
     "mongoose": "^6.10.0",
     "play-dl": "https://github.com/pedrovfranco/play-dl.git",
+    "redis": "^4.6.5",
     "sodium-native": "^4.0.1",
     "workerpool": "^6.4.0",
     "ytdl-core": "^4.11.2",
