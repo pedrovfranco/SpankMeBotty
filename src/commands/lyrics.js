@@ -24,17 +24,22 @@ export async function execute(interaction/* : ChatInputCommandInteraction */) {
         return;
     }
 
-    interaction.deferReply();
+    await interaction.deferReply();
 
     try {
         let currSongTitle = guildData.queue[0].title;
         
         // Remove features
         currSongTitle = currSongTitle.replace(/ft\..*/, '');
+        currSongTitle = currSongTitle.replace(/feat\..*/, '');
         currSongTitle = currSongTitle.replace(/featur.*/, '');
 
         // Remove Tags
         currSongTitle = currSongTitle.replace(/\[.*\]/, '');
+
+        // Remove Parenthesis
+        currSongTitle = currSongTitle.replace(/\(.*\)/, '');
+
 
         const accessToken = process.env.GENIUS_API_KEY;
     
@@ -52,14 +57,14 @@ export async function execute(interaction/* : ChatInputCommandInteraction */) {
         
         const lyricsStr = await lyrics.getLyrics(options);
         
-        const discordMaxMessageSize = 2000;
+        const discordMaxMessageSize = 2_000;
 
         if (lyricsStr.length > discordMaxMessageSize * 5) {
             interaction.editReply('The lyrics seem too long for a song, skipping.');
             return;
         }
         
-        let lyricsMessageList = lyricsStr.match(/[\s\S]{1,2000}/g);
+        let lyricsMessageList = lyricsStr.match(/[\s\S]{1,2000}/g); // Break lyrics into chunks of 2000 chars
     
         await interaction.editReply(lyricsMessageList[0]);
     
