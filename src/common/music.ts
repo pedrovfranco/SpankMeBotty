@@ -535,15 +535,15 @@ async function onTTSEnd(this: string, oldState: VoiceConnectionState, newState: 
     console.log("TTS ended");
 }
 
-export async function skipCurrentSong(guildId: string): Promise<boolean> {
+export async function skipCurrentSong(guildId: string, count: number = 1): Promise<boolean> {
     let guildData = addGuild(guildId);
 
-    if (guildData.queue.length == 0) {
+    if (guildData.queue.length - count < 0) {
         return false;
     }
 
     guildData.audioPlayer?.removeAllListeners(AudioPlayerStatus.Idle);
-    guildData.queue.splice(guildData.playing, 1);
+    guildData.queue.splice(guildData.playing, count);
     guildData.audioPlayer?.pause();
 
     return playNextSong(guildId);
