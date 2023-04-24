@@ -10,7 +10,9 @@ const maxYoutubeSearchBatchSize = 100;
 export async function getSong(search_query: string): Promise<MusicWorkerResult | undefined> {
 
     if (search_query.startsWith(directStreamMacro)) {
-        return new MusicWorkerResult([new QueueItem(search_query, 'DirectStream', 0)]);
+        let splitLinks = search_query.replace(directStreamMacro, '').split(' ');
+        let songName = 'DirectStream';
+        return new MusicWorkerResult(splitLinks.map(x=>new QueueItem(`${directStreamMacro}${x}`, songName, 0)), `${songName} playlist`);
     }
 
     await refreshCredentialsIfNecessary();
