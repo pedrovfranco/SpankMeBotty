@@ -1,18 +1,58 @@
 import workerpool from 'workerpool';
 import {validate, video_basic_info, playlist_info, spotify, search, SpotifyPlaylist, SpotifyAlbum, SpotifyTrack, YouTubeVideo } from 'play-dl';
 import { performance } from 'perf_hooks';
+import http from 'http';
+import https from 'https';
 
 import { refreshCredentialsIfNecessary, maxYtdlRetries, QueueItem, MusicWorkerResult, DEBUG_WORKER, directStreamMacro } from './music';
 
 const maxPlaylistSize = 1000;
 const maxYoutubeSearchBatchSize = 100;
+const utf8Macro = 'utf-8';
 
 export async function getSong(search_query: string): Promise<MusicWorkerResult | undefined> {
 
     if (search_query.startsWith(directStreamMacro)) {
         let splitLinks = search_query.replace(directStreamMacro, '').split(' ');
         let songName = 'DirectStream';
-        return new MusicWorkerResult(splitLinks.map(x=>new QueueItem(`${directStreamMacro}${x}`, songName, 0)), `${songName} playlist`);
+        let itemList = [];
+
+        for (const link of splitLinks)
+        {
+            const requestModule = link.startsWith('http://') ? http : https;
+            const req = requestModule.request(link, { method: 'GET' });
+            req.end();
+
+            const res = await new Promise<http.IncomingMessage>((resolve, reject) => {
+                req.on('response', resolve);
+                req.on('error', reject);
+            });
+            
+            // Extract filename from context disposition using regex
+            const contentDisposition = res.headers['content-disposition'] ?? '';
+            const filenamePattern = /filename\*[^;=\n]*=([^;\n]*)/i;
+            const filenameMatches = contentDisposition.match(filenamePattern);
+
+            if (!(filenameMatches && filenameMatches.length >= 2)) {
+                return;
+            }
+
+            // Remove UTF-8 macro inside the string
+            let filename = decodeURIComponent(filenameMatches[1].replace(/['"]/g, ''));
+            if (filename.toLowerCase().startsWith(utf8Macro)) {
+                filename = filename.substring(utf8Macro.length);
+            }
+
+            // Remove file extension if it exists
+            let extensionIndex = filename.lastIndexOf('.');
+            if (extensionIndex != -1) {
+                filename = filename.substring(0, extensionIndex);
+            }
+
+            itemList.push(new QueueItem(`${directStreamMacro}${link}`, filename, 0))
+        }
+
+        return new MusicWorkerResult(itemList, `${songName} playlist`);
     }
 
     await refreshCredentialsIfNecessary();
