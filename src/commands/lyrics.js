@@ -1,15 +1,15 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, TextChannel } from 'discord.js';
-// import https from 'https';
-// import Lyricist from 'lyricist';
+import { SlashCommandBuilder, TextChannel } from 'discord.js';
 import * as lyrics from 'genius-lyrics-api';
 
 import { addGuild } from '../common/music';
+
+const discordMaxMessageSize = 2_000;
 
 export let data = new SlashCommandBuilder()
     .setName('lyrics')
     .setDescription('Shows the lyrics of the currently playing song, if they exist.')
 
-export async function execute(interaction/* : ChatInputCommandInteraction */) {
+export async function execute(interaction) {
       
     const guildId = interaction.guild?.id;
 
@@ -27,38 +27,30 @@ export async function execute(interaction/* : ChatInputCommandInteraction */) {
     await interaction.deferReply();
 
     try {
-        let currSongTitle = guildData.queue[0].title;
-        
-        // Remove features
-        currSongTitle = currSongTitle.replace(/ft\..*/, '');
-        currSongTitle = currSongTitle.replace(/feat\..*/, '');
-        currSongTitle = currSongTitle.replace(/featur.*/, '');
-
-        // Remove Tags
-        currSongTitle = currSongTitle.replace(/\[.*\]/, '');
-
-        // Remove Parenthesis
-        currSongTitle = currSongTitle.replace(/\(.*\)/, '');
-
-
-        const accessToken = process.env.GENIUS_API_KEY;
     
-        // Titles should be in the 'Artist - Title' format
-        const titleFields = currSongTitle.split('-');
-        const artistName = titleFields.slice(0, titleFields.length-1).join('-').trim(); // Gets
-        const songName = titleFields[titleFields.length-1].trim();
+        let currSongTitle = guildData.queue[0].title;
+
+        // Titles should be in the 'Artist - Title' format, but the Artist's name could have an '-' character as well.
+        const titleFields = currSongTitle.split(' - ');
+
+        if (titleFields.length != 2)
+        {
+            console.log(`titleFields has length ${titleFields.length}!`);
+            interaction.editReply('Failed to fetch lyrics for this song, unexpected format.');
+            return;
+        }
+
+        const artistName = cleanSongString(titleFields[0]).trim(); // Gets
+        const songName = cleanSongString(titleFields[1]).trim();
     
         const options = {
-            apiKey: accessToken,
+            apiKey: process.env.GENIUS_API_KEY,
             title: songName,
             artist: artistName ?? '',
             optimizeQuery: true
         };
         
         const lyricsStr = await lyrics.getLyrics(options);
-        
-        const discordMaxMessageSize = 2_000;
-
         if (lyricsStr.length > discordMaxMessageSize * 5) {
             interaction.editReply('The lyrics seem too long for a song, skipping.');
             return;
@@ -76,4 +68,22 @@ export async function execute(interaction/* : ChatInputCommandInteraction */) {
         console.log(e);
         interaction.editReply('Failed to fetch lyrics for this song.');
     }
+}
+
+function cleanSongString(input)
+{
+    let cleanInput = input.slice();
+        
+    // Remove features
+    cleanInput = cleanInput.replace(/ft\..*/, '');
+    cleanInput = cleanInput.replace(/feat\..*/, '');
+    cleanInput = cleanInput.replace(/featur.*/, '');
+
+    // Remove Tags
+    cleanInput = cleanInput.replace(/\[.*\]/, '');
+
+    // Remove Parenthesis
+    cleanInput = cleanInput.replace(/\(.*\)/, '');
+
+    return cleanInput;
 }
