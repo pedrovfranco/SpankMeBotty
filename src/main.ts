@@ -5,7 +5,7 @@ import path from 'path';
 
 fetchEnvVariables();
 
-require('./database/mongo');
+import * as mongo from './database/mongo';
 import GuildSettings from './database/models/guildSettings';
 import { changeVolume, initialize } from './common/music';
 import { registerBot } from './commandsProcessor';
@@ -108,6 +108,8 @@ function printDicordjsVoiceDependencyReport() {
 
 async function main() {
 	printEnvVariables();
+
+	await mongo.connect();
 
 	let client = startClient();
 

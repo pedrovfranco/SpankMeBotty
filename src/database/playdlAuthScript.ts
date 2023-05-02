@@ -1,10 +1,10 @@
 import fs from 'fs';
-import playdlAuth from './models/playdlAuth';
 import path from 'path';
 
-const basePath = path.join(__dirname, '..', '..', '.data',);
+import playdlAuth from './models/playdlAuth';
 
-const saveToFiles = false;
+const basePath = path.join(__dirname, '..', '..', '.data',);
+const saveToFiles = true;
 
 export async function UploadAuth() {
 

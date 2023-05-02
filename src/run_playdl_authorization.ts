@@ -3,6 +3,5 @@ if (require('dotenv').config().error) {
 }
 
 import { UploadAuth } from "./database/playdlAuthScript";
-import * as asmongodb from './database/mongo';
 
 UploadAuth();
