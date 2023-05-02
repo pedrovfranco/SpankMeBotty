@@ -298,14 +298,23 @@ async function playNextSong(guildId: string) : Promise<boolean> {
             let resource: AudioResource;
             let retryCount = 0;
             if (!directStream) {
-                while (retryCount < exports.maxYtdlRetries) {
+                while (retryCount < maxYtdlRetries) {
                     try {
                         ytdlStream = await playdl.stream(link, { quality: 2, discordPlayerCompatibility: false });
                         break;
                     }
-                    catch (e) {
+                    catch (e: any) {
                         retryCount++;
-                        let deltaRetries = exports.maxYtdlRetries - retryCount;
+                        let deltaRetries = maxYtdlRetries - retryCount;
+
+                        if (e.message.includes("Sign in to confirm your age")) {
+                            let errorMsg = "The video is age restricted, skipping.";
+                            console.log(errorMsg);
+                            interaction.channel.send(errorMsg);
+                            skipCurrentSong(guildId);
+                            return false;
+                        }
+
                         console.log('Exception raised when using ytdl, remaning retries: ' + deltaRetries);
                         console.log(e);
                     }
@@ -315,7 +324,7 @@ async function playNextSong(guildId: string) : Promise<boolean> {
                     let errMsg = 'Failed to play this song, something went wrong.';
                     console.log(errMsg);
                     interaction.channel.send(errMsg);
-                    exports.skipCurrentSong(guildData);
+                    skipCurrentSong(guildId);
                     return false;
                 }
 
@@ -408,7 +417,7 @@ export async function playTTS(interaction: ChatInputCommandInteraction, readStre
                     // Seems to be reconnecting to a new channel - ignore disconnect
                 } catch (error) {
                     // Seems to be a real disconnect which SHOULDN'T be recovered from
-                    exports.destroyGuildConnection(guildData);
+                    destroyGuildConnection(guildId);
                 }
             });
 
