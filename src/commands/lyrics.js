@@ -33,15 +33,25 @@ export async function execute(interaction) {
         // Titles should be in the 'Artist - Title' format, but the Artist's name could have an '-' character as well.
         const titleFields = currSongTitle.split(' - ');
 
-        if (titleFields.length != 2)
+        let artistName;
+        let songName;
+
+        if (titleFields.length == 1)
+        {
+            artistName = "";
+            songName = cleanSongString(titleFields[0]).trim();
+        }
+        else if (titleFields.length == 2)
+        {
+            artistName = cleanSongString(titleFields[0]).trim();
+            songName = cleanSongString(titleFields[1]).trim();
+        }
+        else if (titleFields.length > 2)
         {
             console.log(`titleFields has length ${titleFields.length}!`);
             interaction.editReply('Failed to fetch lyrics for this song, unexpected format.');
             return;
         }
-
-        const artistName = cleanSongString(titleFields[0]).trim(); // Gets
-        const songName = cleanSongString(titleFields[1]).trim();
     
         const options = {
             apiKey: process.env.GENIUS_API_KEY,
