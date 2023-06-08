@@ -44,7 +44,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         return;
     }
 
-    interaction.deferReply();
+    await interaction.deferReply();
 
     if (commandType === 'register') {
         let emoteLink = interaction.options.getString('emote_link');
