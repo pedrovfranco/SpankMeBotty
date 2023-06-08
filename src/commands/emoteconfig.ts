@@ -218,6 +218,7 @@ export async function handleList(interaction: ChatInputCommandInteraction) {
     }
 
     Emote.find({guildId: interaction.guild.id})
+    .select('name guildId')
     .then(mappings => {
 
         let list = 'Emotes:';

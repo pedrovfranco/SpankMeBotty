@@ -45,14 +45,14 @@ async function handleMessage(message: Message) {
 		return;
 
 
-	if (message.content.startsWith(prefix)) {
+	// if (message.content.startsWith(prefix)) {
 
-		if (alertCommandDeprecation) {
-			message.reply('This style of command is deprecated, please use discord\'s built-in command system by typing \"/\" on the chat instead');
-		}
+	// 	if (alertCommandDeprecation) {
+	// 		message.reply('This style of command is deprecated, please use discord\'s built-in command system by typing \"/\" on the chat instead');
+	// 	}
 
-		return;
-	}
+	// 	return;
+	// }
 
 	if (flagExactEmoteMatch) {
 		sendEmote(message, message.content, false); // If the message is not an emote name this function should fail gracefully
