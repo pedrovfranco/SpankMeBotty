@@ -9,7 +9,7 @@ import * as mongo from './database/mongo';
 import GuildSettings from './database/models/guildSettings';
 import { changeVolume, initialize } from './common/music';
 import { registerBot } from './commandsProcessor';
-import { startServer } from './webserver/web';
+// import { startServer } from './webserver/web';
 import { register } from './deploy-commands';
 import { checkForStream } from './routines/inygonAnnouncer';
 
@@ -79,6 +79,7 @@ async function getCommands() {
 }
 
 function startInygonRoutine() {
+	checkForStream();
 	setInterval(() => {
 		checkForStream();
 	}, 60 * 1000); // Polls twitch every minute
@@ -118,7 +119,7 @@ async function main() {
 
 	client.login(process.env.DISCORD_TOKEN);
 
-	startServer();
+	// startServer();
 
 	startInygonRoutine();
 

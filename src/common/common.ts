@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import axios from 'axios';
+// import axios from 'axios';
 // import querystring from 'querystring';
 // import httpsProxyAgent from 'https-proxy-agent';
 import https from 'https';
@@ -346,35 +346,35 @@ export function formatSeconds(input: number) {
 	return result;
 }
 
-export function restartAllDynos() {
-	axios.delete('https://api.heroku.com/apps/spank-me-botty/dynos', {
+// export function restartAllDynos() {
+// 	axios.delete('https://api.heroku.com/apps/spank-me-botty/dynos', {
 
-		headers: {
-			"Content-Type": "application/json",
-			"Accept": "application/vnd.heroku+json; version=3",
-			"Authorization": "Bearer " + process.env.HEROKU_API_AUTH_TOKEN
-		}
+// 		headers: {
+// 			"Content-Type": "application/json",
+// 			"Accept": "application/vnd.heroku+json; version=3",
+// 			"Authorization": "Bearer " + process.env.HEROKU_API_AUTH_TOKEN
+// 		}
 
-	}).then( async (res) => {
+// 	}).then( async (res) => {
 
-		const statusCode = res.status;
-		const contentType = res.headers['content-type'];
+// 		const statusCode = res.status;
+// 		const contentType = res.headers['content-type'];
 
-		let error;
-		if (statusCode !== 200 || contentType == undefined) {
-			error = new Error('Request Failed.\n' + `Status Code: ${statusCode}`);
-		} else if (!/^application\/json/.test(contentType)) {
-			error = new Error('Invalid content-type.\n' + `Expected application/json but received ${contentType}`);
-		}
-		if (error) {
-			console.error(error.message);
-			return;
-		}
+// 		let error;
+// 		if (statusCode !== 200 || contentType == undefined) {
+// 			error = new Error('Request Failed.\n' + `Status Code: ${statusCode}`);
+// 		} else if (!/^application\/json/.test(contentType)) {
+// 			error = new Error('Invalid content-type.\n' + `Expected application/json but received ${contentType}`);
+// 		}
+// 		if (error) {
+// 			console.error(error.message);
+// 			return;
+// 		}
 
-		console.log('Restarting all dynos remotely...')
+// 		console.log('Restarting all dynos remotely...')
 		
-	})
-}
+// 	})
+// }
 
 // export function initializeCookieJar() {
 
