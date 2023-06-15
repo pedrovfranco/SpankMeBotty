@@ -8,6 +8,11 @@ const discordMaxMessageSize = 2_000;
 export let data = new SlashCommandBuilder()
     .setName('lyrics')
     .setDescription('Shows the lyrics of the currently playing song, if they exist.')
+    .addStringOption(option => option
+        .setName('customtrackname')
+        .setDescription('The track name in the format "artist name - song name"')
+        .setRequired(false)
+    )
 
 export async function execute(interaction) {
       
@@ -28,7 +33,7 @@ export async function execute(interaction) {
 
     try {
     
-        let currSongTitle = guildData.queue[0].title;
+        let currSongTitle = interaction.options.getString('customtrackname', false) ?? guildData.queue[0].title;
 
         // Titles should be in the 'Artist - Title' format, but the Artist's name could have an '-' character as well.
         const titleFields = currSongTitle.split(' - ');
