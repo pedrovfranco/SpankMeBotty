@@ -11,7 +11,7 @@ import { changeVolume, initialize } from './common/music';
 import { registerBot } from './commandsProcessor';
 // import { startServer } from './webserver/web';
 import { register } from './deploy-commands';
-import { checkForStream } from './routines/inygonAnnouncer';
+// import { checkForStream } from './routines/inygonAnnouncer';
 
 
 function fetchEnvVariables()
@@ -78,12 +78,11 @@ async function getCommands() {
 	return commands;
 }
 
-function startInygonRoutine() {
-	checkForStream();
-	setInterval(() => {
-		checkForStream();
-	}, 60 * 1000); // Polls twitch every minute
-}
+// function startInygonRoutine() {
+// 	setInterval(() => {
+// 		checkForStream();
+// 	}, 60 * 1000); // Polls twitch every minute
+// }
 
 function LoadGuildSettings() {
     GuildSettings.find({})
@@ -121,7 +120,7 @@ async function main() {
 
 	// startServer();
 
-	startInygonRoutine();
+	// startInygonRoutine();
 
 	LoadGuildSettings();
 
