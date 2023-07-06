@@ -40,6 +40,7 @@ export class GuildMusicData {
     guildId!: string;
     voiceChannelId?: string;
     volume!: number;
+    soundboardVolume!: number;
     lastInteraction?: ChatInputCommandInteraction;
     guild?: Guild;
 
@@ -56,14 +57,13 @@ export class GuildMusicData {
     ttsShouldPause?: boolean;
 }
 
-
-
 export let maxYtdlRetries = 3;
 export const DEBUG_WORKER = true;
 export const directStreamMacro = 'direct://';
 
 const pool = workerpool.pool(path.join(__dirname, 'music_worker.js'), {maxWorkers: 4, workerType: 'thread'});
 const defaultMusicVolume = 0.2;
+const defaultSoundBoardVolume = defaultMusicVolume / 2; // 0.1
 
 let guilds: Map<string, GuildMusicData> =  new Map<string, GuildMusicData>();
 
@@ -124,6 +124,7 @@ export function addGuild(guildId: string) : GuildMusicData {
             paused: false,
             guildId: guildId,
             volume: defaultMusicVolume,
+            soundboardVolume: defaultSoundBoardVolume
         };
 
         guilds.set(guildId, guildData);
@@ -373,7 +374,7 @@ async function playNextSong(guildId: string) : Promise<boolean> {
     }
 }
 
-export async function playTTS(interaction: ChatInputCommandInteraction, readStream: Readable, callback?: (errorType?: string, errorMsg?: string) => void): Promise<void> {
+export async function playTTS(interaction: ChatInputCommandInteraction, readStream: Readable, callback?: (errorType?: string, errorMsg?: string) => void, volume: number = 1.0): Promise<void> {
     
     try {
         if (interaction.guild == null) {
@@ -433,8 +434,8 @@ export async function playTTS(interaction: ChatInputCommandInteraction, readStre
             guildData.ttsAudioPlayer = ttsPlayer;
         }
 
-        let resource = await probeAndCreateResource(readStream, false, 'tts'); // Disable inlinevolume since the volume will always be max (1.0)
-
+        let resource = await probeAndCreateResource(readStream, true, 'tts');
+        resource?.volume?.setVolume(volume);
         guildData.ttsShouldPause = false;
 
         if (guildData.audioPlayer != null && guildData.connectionSubscription != null) {
@@ -555,7 +556,9 @@ export async function skipCurrentSong(guildId: string, count: number = 1): Promi
     guildData.queue.splice(guildData.playing, count);
     guildData.audioPlayer?.pause();
 
-    return playNextSong(guildId);
+    await playNextSong(guildId);
+
+    return true;
 }
 
 export function pause(guildId: string): boolean {
@@ -614,6 +617,9 @@ export function stop(guildId: string): boolean {
 }
 
 export async function changeVolume(guildId: string, newVolume: number, saveToDB: boolean): Promise<boolean> {
+    let guildData = addGuild(guildId);
+
+    newVolume ??= defaultMusicVolume;
 
     if (saveToDB) {
         try {
@@ -622,7 +628,8 @@ export async function changeVolume(guildId: string, newVolume: number, saveToDB:
             if (mappings.length === 0) { 
                 const newGuildSettings = new GuildSettings({
                     guildId: guildId,
-                    musicvolume: newVolume
+                    musicvolume: newVolume,
+                    soundboardVolume: guildData.soundboardVolume
                 });
     
                 try {
@@ -659,12 +666,66 @@ export async function changeVolume(guildId: string, newVolume: number, saveToDB:
         };
     }
 
-    let guildData = addGuild(guildId);
     guildData.audioPlayerResource?.volume?.setVolume(newVolume);
     guildData.volume = newVolume;
 
     return true;
 }
+
+export async function changeSoundboardVolume(guildId: string, newVolume: number, saveToDB: boolean): Promise<boolean> {
+    let guildData = addGuild(guildId);
+
+    newVolume ??= defaultSoundBoardVolume;
+
+    if (saveToDB) {
+        try {
+            let mappings = await GuildSettings.find({guildId: guildId});
+
+            if (mappings.length === 0) { 
+                const newGuildSettings = new GuildSettings({
+                    guildId: guildId,
+                    musicvolume: guildData.volume,
+                    soundboardVolume: newVolume
+                });
+    
+                try {
+                    await newGuildSettings.save()
+                    console.log('Saved guildSettings for guildId ' + guildId);
+                }
+                catch(err: any) {
+                    let errorMsg = 'Failed to save guildSettings';
+        
+                    if (err.code === 11000) {
+                        errorMsg += ', name already exists';
+                    }
+                    else {
+                        errorMsg += ', unknown error';
+                    }
+
+                    console.error(err);
+                    return false;
+                };
+            }
+            else if (mappings.length === 1){
+                let entry = mappings[0];
+                entry.soundboardVolume = newVolume;
+                entry.save();
+            }
+            else {
+                console.error('Found multiple entries for a single guildId');
+                return false;
+            }
+        }
+        catch(err: any) {
+            console.error(err);
+            return false;
+        };
+    }
+
+    guildData.soundboardVolume = newVolume;
+    return true;
+}
+
 
 export async function destroyGuildConnection(guildId: string): Promise<boolean> {
     let guildData = addGuild(guildId);

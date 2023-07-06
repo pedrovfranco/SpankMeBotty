@@ -8,7 +8,6 @@ interface IEmote {
 	creator: string,
 };
 
-// The Primary Key for an emote would be a pair of {name, guildId}
 const emoteSchema = new Schema<IEmote>(
 	{
 		name: { type: String, required: true },
@@ -22,6 +21,7 @@ const emoteSchema = new Schema<IEmote>(
 	},
 );
 
+// The Primary Key for an emote would be a pair of {name, guildId}
 emoteSchema.index({guildId: 1, name: 1}, {unique: true});
 
 export default model<IEmote>(

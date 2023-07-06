@@ -7,7 +7,7 @@ fetchEnvVariables();
 
 import * as mongo from './database/mongo';
 import GuildSettings from './database/models/guildSettings';
-import { changeVolume, initialize } from './common/music';
+import { changeVolume, changeSoundboardVolume, initialize } from './common/music';
 import { registerBot } from './commandsProcessor';
 // import { startServer } from './webserver/web';
 import { register } from './deploy-commands';
@@ -94,6 +94,7 @@ function LoadGuildSettings() {
 			console.log('musicvolume = ' + entry.musicvolume);
 
 			changeVolume(entry.guildId, entry.musicvolume, false);
+			changeSoundboardVolume(entry.guildId, entry.soundboardVolume, false);
 		}
     })
     .catch(err => {
