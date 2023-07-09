@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, Collection, SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
+import { Client, GatewayIntentBits, Collection } from 'discord.js';
 import { generateDependencyReport } from '@discordjs/voice';
 import fs from 'fs';
 import path from 'path';
@@ -8,10 +8,8 @@ fetchEnvVariables();
 import * as mongo from './database/mongo';
 import GuildSettings from './database/models/guildSettings';
 import { changeVolume, changeSoundboardVolume, initialize } from './common/music';
-import { registerBot } from './commandsProcessor';
-// import { startServer } from './webserver/web';
+import { registerBot, CommandFile } from './commandsProcessor';
 import { register } from './deploy-commands';
-// import { checkForStream } from './routines/inygonAnnouncer';
 
 
 function fetchEnvVariables()
@@ -43,7 +41,7 @@ function startClient() {
 			GatewayIntentBits.MessageContent,
 			GatewayIntentBits.GuildVoiceStates,
 			GatewayIntentBits.GuildEmojisAndStickers,
-			GatewayIntentBits.GuildBans,
+			GatewayIntentBits.GuildModeration,
 			GatewayIntentBits.Guilds,
 		]
 	});
@@ -56,7 +54,7 @@ function startClient() {
 }
 
 async function getCommands() {
-	let commands = new Collection<string, {data: SlashCommandBuilder, execute: (interaction: ChatInputCommandInteraction) => Promise<void>}>();
+	let commands = new Collection<string, CommandFile>();
 
 	const commandFiles = fs.readdirSync(path.join(__dirname, 'commands')).filter(file => file.endsWith('.js') || file.endsWith('.ts'));
 

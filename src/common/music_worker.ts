@@ -84,9 +84,16 @@ export async function getSong(search_query: string): Promise<MusicWorkerResult |
                 info = (await video_basic_info(link)).video_details;
                 break;
             }
-            catch (e) {
+            catch (e: any) {
                 retryCount++;
                 let deltaRetries = maxYtdlRetries - retryCount;
+
+                if (e.message.includes("Sign in to confirm your age")) {
+                    let errorMsg = "The video is age restricted, skipping.";
+                    console.log(errorMsg);
+                    return new MusicWorkerResult([], undefined, 'age');
+                }
+
                 console.log('Exception raised when using ytdl, remaning retries: ' + deltaRetries);
                 console.log(e);
             }
@@ -184,7 +191,7 @@ async function searchTrackOnYoutube(trackName: string): Promise<QueueItem | unde
 
 async function searchArrayOfTracksOnYoutube(trackNameArray: string[]): Promise<QueueItem[] | undefined> {
     try {
-        var startTime = performance.now();
+        let startTime = performance.now();
 
         let values: PromiseSettledResult<YouTubeVideo[]>[] = [];
         for (let i = 0; ; i++)
@@ -223,7 +230,7 @@ async function searchArrayOfTracksOnYoutube(trackNameArray: string[]): Promise<Q
             }
         }
 
-        var endTime = performance.now()
+        let endTime = performance.now()
         console.log(`searchArrayOfTracksOnYoutube took ${endTime - startTime} milliseconds`)
 
         return songArr;

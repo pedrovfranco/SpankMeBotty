@@ -1,5 +1,5 @@
 import { createAudioPlayer, entersState, VoiceConnectionStatus, joinVoiceChannel, demuxProbe, createAudioResource, AudioPlayerStatus, getVoiceConnection, VoiceConnection, AudioPlayer, StreamType, AudioResource, PlayerSubscription, VoiceConnectionState, AudioPlayerError } from '@discordjs/voice';
-import { ChannelType, ChatInputCommandInteraction, GuildMember, Guild, TextChannel } from 'discord.js';
+import { ChannelType, ChatInputCommandInteraction, GuildMember, Guild, TextChannel, BaseInteraction } from 'discord.js';
 
 import playdl from 'play-dl';
 import { YouTubeStream } from 'play-dl';
@@ -26,10 +26,12 @@ export class QueueItem {
 export class MusicWorkerResult {
     songArr: QueueItem[];
     playlistTitle?: string;
+    error?: string;
 
-    constructor(songArr: QueueItem[], playlistTitle?: string) {
+    constructor(songArr: QueueItem[], playlistTitle?: string, error?: string) {
         this.songArr = songArr;
         this.playlistTitle = playlistTitle;
+        this.error = error;
     }
 }
 
@@ -63,7 +65,7 @@ export const directStreamMacro = 'direct://';
 
 const pool = workerpool.pool(path.join(__dirname, 'music_worker.js'), {maxWorkers: 4, workerType: 'thread'});
 const defaultMusicVolume = 0.2;
-const defaultSoundBoardVolume = defaultMusicVolume / 2; // 0.1
+const defaultSoundBoardVolume = defaultMusicVolume; // 0.2
 
 let guilds: Map<string, GuildMusicData> =  new Map<string, GuildMusicData>();
 
@@ -133,13 +135,15 @@ export function addGuild(guildId: string) : GuildMusicData {
     return guildData;
 }
 
-function addVoiceChannelToGuild(interaction : ChatInputCommandInteraction, guildData: GuildMusicData) {
+function addVoiceChannelToGuild(interaction : BaseInteraction, guildData: GuildMusicData) {
 
     if (interaction.guild == undefined) {
         return;
     }
 
-    guildData.lastInteraction = interaction;
+    if (interaction.isChatInputCommand()) {
+        guildData.lastInteraction = interaction;
+    }
 
     if (guildData.guild == null && interaction.guild != null) {
         guildData.guild = interaction.guild;
@@ -191,6 +195,13 @@ export async function addToQueue(interaction : ChatInputCommandInteraction, sear
 async function handleMusicWorkerResult(interaction : ChatInputCommandInteraction, guildData: GuildMusicData, result: MusicWorkerResult | undefined) {
     if (result == undefined) {
         interaction.editReply('Video not found');
+        return;
+    }
+
+    if (result.error == 'age') {
+        let errMsg = 'This video is age resticted!';
+        interaction.editReply(errMsg);
+        console.log(errMsg);
         return;
     }
 
@@ -374,10 +385,10 @@ async function playNextSong(guildId: string) : Promise<boolean> {
     }
 }
 
-export async function playTTS(interaction: ChatInputCommandInteraction, readStream: Readable, callback?: (errorType?: string, errorMsg?: string) => void, volume: number = 1.0): Promise<void> {
+export async function playTTS(interaction: BaseInteraction, readStream: Readable, callback?: (errorType?: string, errorMsg?: string) => void, volume: number = 1.0): Promise<void> {
     
     try {
-        if (interaction.guild == null) {
+        if (interaction.guild?.id == undefined || !interaction.isRepliable()) {
             console.error('No interaction to play next song, failing.');
             callback?.call(undefined, undefined, 'No interaction to play next song, failing.');
             return;
@@ -792,7 +803,7 @@ export function shuffle(guildId: string): boolean {
             queueDelta.splice(randomIndex, 1);
         }
 
-        // Replaces the values to be shuffle with values from the subQueue array
+        // Replaces the values to be shuffled with values from the subQueue array
         for (let i = startIndex; i < guildData.queue.length; i++) {
             guildData.queue[i] = subQueue[i-startIndex];
         }

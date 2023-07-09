@@ -1,7 +1,6 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, GuildMember } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, GuildMember, APIApplicationCommandOptionChoice, AutocompleteInteraction } from 'discord.js';
 
-import { alertAndLog, playTTS} from '../common/common';
-
+import { alertAndLog, playTTS, readableNameVoices } from '../common/common';
 
 export let data = new SlashCommandBuilder()
     .setName('tts')
@@ -14,8 +13,9 @@ export let data = new SlashCommandBuilder()
     .addStringOption(option => option
         .setName('voice')
         .setDescription('The voice that reads the text (defaults to Brian)')
+        // .addChoices(...readableNameVoices.slice(0, 24).map<APIApplicationCommandOptionChoice<string>>(x=>({name: x, value: x})))
+        .setAutocomplete(true)
     )
-
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
     
@@ -57,4 +57,13 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
             }
         }
     });
+}
+
+export async function autocomplete(interaction: AutocompleteInteraction) {
+    const focusedValue = interaction.options.getFocused().toLowerCase();
+    console.log(focusedValue);
+    const filtered = readableNameVoices.filter(voice => voice.toLowerCase().startsWith(focusedValue)).slice(0, 25); // Gets the first 25 results, this is the discord API limit for choises.
+    await interaction.respond(
+        filtered.map(choice => ({ name: choice, value: choice })),
+    );
 }

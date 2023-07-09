@@ -1,21 +1,23 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, User } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, User, ButtonBuilder, ButtonStyle, ActionRowBuilder, ComponentType, BaseInteraction, GuildMember, AutocompleteInteraction } from 'discord.js';
 import fs from 'fs';
 import path from 'path';
 import { http, https } from 'follow-redirects';
 import ffmpeg from 'fluent-ffmpeg';
 import playdl from 'play-dl';
 
-
 import SoundBite from '../database/models/soundBite';
 import { playTTS, addGuild, changeSoundboardVolume } from '../common/music';
 import { PermissionType, hasPermission } from '../common/permissions';
-import { Readable } from 'stream';
+import {  Readable } from 'stream';
 import { spawn } from 'child_process';
-import { ReReadable} from 'rereadable-stream';
+import { ReReadable } from 'rereadable-stream';
+import { alertAndLog, userInVoiceChannel } from '../common/common';
 
 const maxFileSize = 1 << 19; // 512 KB
 const maxSoundbiteDuration = 10; // 5 seconds
 const soundBitesFolderName = 'soundbites';
+const moreButtonId = 'morebuttonID';
+const backButtonId = 'backbuttonID';
 
 export class Duration {
     hours: number;
@@ -149,6 +151,7 @@ export let data = new SlashCommandBuilder()
             .setName('name')
             .setDescription('The sound bite\'s name')
             .setRequired(true)
+            .setAutocomplete(true)
         )
     )
     .addSubcommand(subcommand => subcommand
@@ -187,6 +190,7 @@ export let data = new SlashCommandBuilder()
             .setName('name')
             .setDescription('The name of the sound bite')
             .setRequired(true)
+            .setAutocomplete(true)
         )
     )
     .addSubcommand(subcommand => subcommand
@@ -201,18 +205,9 @@ export let data = new SlashCommandBuilder()
             .setDescription('The new value of the soundboard volume')
             .setRequired(false)
         )
- );
+);
 
-
-export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    let commandType = interaction.options.getSubcommand();
-
-    if (interaction.guild?.id == undefined) {
-        return;
-    }
-
-    await interaction.deferReply();
-
+async function checkPermission(interaction: BaseInteraction) {
     let type = PermissionType.soundboard;
     let {userHasPermission, roles} = await hasPermission(interaction, type);
 
@@ -234,10 +229,62 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
 		    }
 	    }
 
-        await interaction.editReply(errMsg);
         console.error(errMsg);
+        if (interaction.isRepliable())
+            await interaction.editReply(errMsg);
+        return false;
+    }
+
+    return true;
+} 
+
+export async function autocomplete(interaction: AutocompleteInteraction) {
+    if (interaction.guild?.id == undefined) {
         return;
     }
+
+    if (!checkPermission(interaction))
+        return;
+
+    let guildId = interaction.guild.id;
+    let commandType = interaction.options.getSubcommand();
+
+    if (commandType === 'play' || commandType === 'remove') {
+        const focusedValue = interaction.options.getFocused().toLowerCase();
+        console.log(focusedValue);
+
+        // The sound bite's name starts with the focused value, we can use regex directly in the query to simplify this
+        SoundBite.find({guildId: guildId, name: new RegExp(`^${focusedValue}`)})
+        .select('name guildId')
+        .then(async mappings => {
+            const filtered = mappings.slice(0, 25); // Gets the first 25 results, this is the discord API limit for choises.
+            await interaction.respond(
+                filtered.map(entry => ({ name: entry.name, value: entry.name })),
+            );
+        })
+        .catch(async err => {
+            console.log(err);
+            await interaction.respond([]);
+        })
+    }
+}
+
+export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
+    let commandType = interaction.options.getSubcommand();
+
+    if (interaction.guild?.id == undefined) {
+        return;
+    }
+
+    await interaction.deferReply();
+
+    if (!userInVoiceChannel(interaction)) {
+        await alertAndLog(interaction, 'User not in a voice channel!');
+        return;
+    }
+
+    if (!checkPermission(interaction))
+        return;
 
     if (commandType === 'play') {
         let name = interaction.options.getString('name', true);
@@ -268,11 +315,18 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         let newValue = interaction.options.getNumber('newvalue');
         handleVolume(interaction, newValue);
     }
-
 }
 
-async function handlePlay(interaction: ChatInputCommandInteraction, name: string) {
-    if (interaction.guild?.id == undefined) {
+async function handlePlay(interaction: BaseInteraction, name: string) {
+
+    if (interaction.guild?.id == undefined || !interaction.isRepliable()) {
+        let errMsg = 'Something went wrong';
+        console.error(errMsg);
+        return;
+    }
+
+    if (interaction.member == undefined || !(interaction.member instanceof GuildMember) || interaction.member.voice == undefined || interaction.member.voice.channel == undefined) {
+        alertAndLog(interaction, 'User not in a voice channel!');
         return;
     }
 
@@ -280,43 +334,73 @@ async function handlePlay(interaction: ChatInputCommandInteraction, name: string
     let guildData = addGuild(guildId);
 
     SoundBite.findOne({ name: name, guildId: interaction.guild.id }).orFail()
-    .then(result => {
+    .then(async result => {
 		let folderPath = path.join(__dirname, '..', soundBitesFolderName, guildId);
 		let filePath = path.join(folderPath, name + result.extension);
 		
 		if (!fs.existsSync(filePath)) {
-			// Creates directory recursively
-			if (!fs.existsSync(folderPath))
-                fs.mkdirSync(folderPath, { recursive: true});
-            
-			fs.writeFileSync(filePath, result.data, {encoding: 'binary'});
-		}
+            try {
+                await downloadAndNormaliseAudioFile(name, result.extension, result.data, filePath, folderPath);
+            } catch (error) {
+                console.error(error);
+            }
+        }
 
-		// Play sound
-        playTTS(interaction, fs.createReadStream(filePath, {autoClose: true }), (errType, errMsg) => {
+        // Play sound
+        await playTTS(interaction,
+            fs.createReadStream(filePath, {autoClose: true }),
+            async (errType, errMsg) => {
             if (errType == undefined && errMsg == undefined) {
-                interaction.editReply(`Playing ${name} on the soundboard.`);
+                await interaction.editReply(`Playing ${name} on the soundboard.`);
             }
             else if (errType === 'permissionError' && errMsg != undefined) {
-                interaction.editReply(errMsg);
+                await interaction.editReply(errMsg);
                 console.log('TTS permission error');
             }
             else {
                 try {
-                    interaction.editReply('Failed!');
+                    await interaction.editReply('Failed!');
                     console.log('soundboard error = ' + JSON.stringify({errType, errMsg}));
                 }
                 catch (err) {
-                    interaction.editReply('Failed!');
+                    await interaction.editReply('Failed!');
                     console.log('soundboard error = ' + JSON.stringify({errType, errMsg}));
                 }
             }
         }, guildData.soundboardVolume);
+    
     })
-    .catch(() => {
+    .catch(async (err) => {
         let errMsg = `No sound bite with the name '${name}' was found for this server.`;
         console.log(errMsg);
         interaction.editReply(errMsg);
+    });
+}
+
+async function downloadAndNormaliseAudioFile(soundBiteName: string, extension: string, data: Buffer, filePath: string, folderPath: string) {
+    return new Promise<void>((resolve, reject) => {
+        let normFilePath = path.join(folderPath, soundBiteName + '_normalised' + extension);
+
+        if (!fs.existsSync(folderPath))
+            fs.mkdirSync(folderPath, { recursive: true});
+        
+        fs.writeFileSync(filePath, data, {encoding: 'binary'});
+
+        ffmpeg()
+            .input(filePath)
+            // .outputOptions('-c copy')
+            .audioFilters('loudnorm=I=-18:LRA=7:TP=-2:print_format=json')
+            .output(normFilePath)
+            .on('end', async () => {
+                console.log('Conversion completed successfully');
+                fs.unlinkSync(filePath);
+                fs.renameSync(normFilePath, filePath);
+                resolve();
+            })
+            .on('error', async (err) => {
+                reject(err);
+            })
+            .run();
     });
 }
 
@@ -330,6 +414,13 @@ async function handleRegister(interaction: ChatInputCommandInteraction, name: st
     let creatorId = interaction.member.user.tag;
     let filename: string;
     let folderPath = path.join(__dirname, '..', soundBitesFolderName, interaction.guild.id);
+
+    if (name.startsWith(moreButtonId) || name.startsWith(backButtonId)) {
+        let errMsg = 'That name is reserved, choose something else.';
+        console.error(errMsg);
+        await interaction.editReply(errMsg);
+        return;
+    }
 
     try {
         await SoundBite.findOne({ name: name, guildId: guildId }).orFail();
@@ -389,10 +480,8 @@ async function handleRegister(interaction: ChatInputCommandInteraction, name: st
     }
 }
 
-let start = performance.now();
-
 async function WriteStreamToFile(interaction: ChatInputCommandInteraction, guildId: string, creatorId: string, name: string, startTime: string | null, endTime: string | null, fileExtension: string, folderPath: string, stream: Readable, volumeScale: number | null) {
-    start = performance.now();
+    let start = performance.now();
     const bufSize = 8096;
 
     if (fileExtension === "") {
@@ -478,7 +567,7 @@ async function WriteStreamToFile(interaction: ChatInputCommandInteraction, guild
             inputOptions.push(`-to ${ffmpegEndTime.toTotalSeconds()}`);
         }
 
-        var command = ffmpeg()
+        let command = ffmpeg()
         .input(rereadable.rewind())
         .inputOptions(inputOptions);
 
@@ -486,13 +575,14 @@ async function WriteStreamToFile(interaction: ChatInputCommandInteraction, guild
             command = command.audioFilters(`volume=${volumeScale}`);
         }
 
-        command.outputOptions(['-map', 'a:0'])
+        command
+        .outputOptions(['-map', 'a:0'])
         .output(filePath)
         // .outputOptions('-c copy') // Disabled due to inaccuracies when using timestamps and -c copy. See https://trac.ffmpeg.org/wiki/Seeking#Seekingwhiledoingacodeccopy
         .on('end', async () => {
             console.log('Conversion completed successfully');
             console.log(`Took ${performance.now()-start} ms.`);
-            var buffer = fs.readFileSync(filePath);
+            let buffer = fs.readFileSync(filePath);
 
             if (buffer.length > maxFileSize) {
                 let errMsg = `The file should be smaller than ${maxFileSize/(1 << 10)} KB.`;
@@ -513,7 +603,7 @@ async function WriteStreamToFile(interaction: ChatInputCommandInteraction, guild
 
             newSoundBite.save()
             .then(_ => {
-                var successMsg = `Saved '${name}'`;
+                let successMsg = `Saved '${name}'`;
                 console.log(successMsg);
                 interaction.editReply(successMsg);
             })
@@ -551,7 +641,7 @@ async function handleRemove(interaction: ChatInputCommandInteraction, name: stri
         return;
     }
 
-    var guildId = interaction.guild?.id;
+    let guildId = interaction.guild?.id;
 
     SoundBite.findOneAndDelete({ name: name, guildId: interaction.guild.id}).orFail()
     .then(async result => {
@@ -561,11 +651,11 @@ async function handleRemove(interaction: ChatInputCommandInteraction, name: stri
         fs.unlinkSync(filePath);
     })
     .catch(async err => {
-        var errMsg = `Sound bite with name '${name}' does not exist!`;
+        let errMsg = `Sound bite with name '${name}' does not exist!`;
         console.log(errMsg, err);
         await interaction.editReply(errMsg);
         return;
-})
+    });
 }
 
 async function handleList(interaction: ChatInputCommandInteraction) {
@@ -575,29 +665,80 @@ async function handleList(interaction: ChatInputCommandInteraction) {
         return;
     }
 
-    SoundBite.find({guildId: interaction.guild.id})
+    const maxRowSize = 5;
+    const maxNumRows = 5;
+
+    let guildId = interaction.guild.id;
+
+    SoundBite.find({guildId: guildId})
     .select('name guildId')
-    .then(mappings => {
+    .then(async mappings => {
 
+        let buttons = [];
         let list = 'Soundbites:';
-
+        let moreButtonCounter = 0;
         if (mappings.length !== 0) {
 
-            list += '\n\`'
+            // list += '\n\`';
             for (let i = 0; i < mappings.length; i++) {
                 const entry = mappings[i];
 
-                list += entry.name;
+                if ((i+1) % (maxRowSize*maxNumRows) == 0) { // The "more" button
+                    buttons.push(new ButtonBuilder()
+                        .setStyle(ButtonStyle.Secondary)
+                        .setCustomId(`${guildId}-${moreButtonId}${moreButtonCounter}`)
+                        .setLabel("More...")
+                    );
 
-                if (i < mappings.length-1) {
-                    list += '\n';
+                    buttons.push(new ButtonBuilder()
+                        .setStyle(ButtonStyle.Secondary)
+                        .setCustomId(`${guildId}-${backButtonId}${moreButtonCounter}`)
+                        .setLabel("Back...")
+                    );
+
+                    moreButtonCounter++;
                 }
 
+                // list += entry.name;
+                let newButton = new ButtonBuilder()
+                    .setStyle(ButtonStyle.Secondary)
+                    .setCustomId(`${guildId}-${entry.name}`)
+                    .setLabel(entry.name)
+
+                buttons.push(newButton);
+                // if (i < mappings.length-1) {
+                //     list += '\n';
+                // }
+            }
+            // list += '\`';
+        }
+
+
+        let pages = arrayChunks(buttons, maxNumRows*maxRowSize).map(x=>arrayChunks(x, maxNumRows).map(x=>new ActionRowBuilder<ButtonBuilder>().addComponents(...x)));
+        let page = pages[0];
+        const response = await interaction.editReply({ content: list, components: page});
+        const collector = response.createMessageComponentCollector({ componentType: ComponentType.Button, /* time: 3_600_000 */ });
+
+        collector.on('collect', async buttonInteraction => {
+            const id = buttonInteraction.customId;
+            const buttonName = id.split('-')[1];
+
+            if (buttonName.startsWith(moreButtonId)) {
+                let buttonId = parseInt(buttonName.replace(moreButtonId, ''));
+                await response.edit({ content: list, components: pages[buttonId+1]});
+                await buttonInteraction.deferUpdate();
+                return;
+            }
+            else if (buttonName.startsWith(backButtonId)) {
+                let buttonId = parseInt(buttonName.replace(backButtonId, ''));
+                await response.edit({ content: list, components: pages[buttonId]});
+                await buttonInteraction.deferUpdate();
+                return;
             }
 
-            list += '\`'
-        }
-        interaction.editReply(list);
+            await buttonInteraction.deferReply();
+            await handlePlay(buttonInteraction, buttonName);
+        });
     })
     .catch(err => {
         console.log(err);
@@ -636,3 +777,5 @@ async function handleVolume(interaction : ChatInputCommandInteraction, newValue:
         }
     }
 }
+
+const arrayChunks = (array: Array<any>, chunk_size: number) => Array(Math.ceil(array.length / chunk_size)).fill(null).map((_, index) => index * chunk_size).map(begin => array.slice(begin, begin + chunk_size));

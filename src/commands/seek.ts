@@ -17,7 +17,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         return;
     }
 
-    var timestamp = interaction.options.getString('timestamp', true);
+    let timestamp = interaction.options.getString('timestamp', true);
     timestamp = timestamp.replace(/\s+/g, '');
 
     const regex = /[0-9]+\:[0-9][0-9]/g;

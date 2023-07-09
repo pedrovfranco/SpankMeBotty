@@ -1,8 +1,7 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction, GuildMember } from 'discord.js';
 
-import { alertAndLog } from '../common/common';
+import { alertAndLog, userInVoiceChannel } from '../common/common';
 import { addToQueue } from '../common/music';
-
 
 export let data = new SlashCommandBuilder()
     .setName('play')
@@ -15,15 +14,11 @@ export let data = new SlashCommandBuilder()
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
 
-    if (!(interaction.member instanceof GuildMember) || interaction.memberPermissions == undefined || interaction.guild == undefined) {
-		return;
-	}
-
-    if (interaction.member == undefined || !(interaction.member instanceof GuildMember) || interaction.member.voice == undefined || interaction.member.voice.channel == undefined) {
+    if (!userInVoiceChannel(interaction)) {
         alertAndLog(interaction, 'User not in a voice channel!');
         return;
     }
-
+    
     const search_query = interaction.options.getString('youtube_video', true);
     addToQueue(interaction, search_query);
 }
