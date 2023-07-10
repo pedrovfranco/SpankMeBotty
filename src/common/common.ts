@@ -82,7 +82,7 @@ export function sendEmote(interaction: ChatInputCommandInteraction | Message<boo
 export async function alertAndLog(interaction: BaseInteraction, text: string) {
 	console.log(text);
 	if (interaction.isRepliable()) {
-		if (interaction.replied) 
+		if (interaction.replied || interaction.deferred) 
 			await interaction.editReply(text);
 		else
 			await interaction.reply(text);

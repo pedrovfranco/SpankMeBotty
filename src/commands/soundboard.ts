@@ -278,11 +278,6 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
 
     await interaction.deferReply();
 
-    if (!userInVoiceChannel(interaction)) {
-        await alertAndLog(interaction, 'User not in a voice channel!');
-        return;
-    }
-
     if (!checkPermission(interaction))
         return;
 
@@ -325,8 +320,8 @@ async function handlePlay(interaction: BaseInteraction, name: string) {
         return;
     }
 
-    if (interaction.member == undefined || !(interaction.member instanceof GuildMember) || interaction.member.voice == undefined || interaction.member.voice.channel == undefined) {
-        alertAndLog(interaction, 'User not in a voice channel!');
+    if (!userInVoiceChannel(interaction)) {
+        await alertAndLog(interaction, 'User not in a voice channel!');
         return;
     }
 
