@@ -262,9 +262,8 @@ export async function autocomplete(interaction: AutocompleteInteraction) {
 
     if (commandType === 'play' || commandType === 'remove' || commandType === 'import') {
         console.log(focusedValue);
-        
 
-        let queryExp = (commandType === 'import') ? {name: new RegExp(`^${focusedValue}`)} : {guildId: guildId, name: new RegExp(`^${focusedValue}`)};
+        let queryExp = (commandType === 'import') ? {guildId: {$ne: guildId}, name: new RegExp(`^${focusedValue}`)} : {guildId: guildId, name: new RegExp(`^${focusedValue}`)};
         let selectLambda = (commandType === 'import') ? ((entry: { name: string; guildId: string }) => ({ name: `${entry.name}:${entry.guildId}`, value: `${entry.name}:${entry.guildId}` })) : ((entry: { name: string; guildId: string }) => ({ name: entry.name, value: entry.name }));
         // The sound bite's name starts with the focused value, we can use regex directly in the query to simplify this
         SoundBite.find(queryExp)
