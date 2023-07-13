@@ -204,6 +204,15 @@ export let data = new SlashCommandBuilder()
             .setName('newvalue')
             .setDescription('The new value of the soundboard volume')
             .setRequired(false)
+        ))
+    .addSubcommand(subcommand => subcommand
+        .setName('import')
+        .setDescription('Imports a sound bite from another server')
+        .addStringOption(option => option
+            .setName('selector')
+            .setDescription('The selector for the sound bite. The format is soundBiteName:guildId')
+            .setRequired(true)
+            .setAutocomplete(true)
         )
 );
 
@@ -249,17 +258,22 @@ export async function autocomplete(interaction: AutocompleteInteraction) {
     let guildId = interaction.guild.id;
     let commandType = interaction.options.getSubcommand();
 
-    if (commandType === 'play' || commandType === 'remove') {
-        const focusedValue = interaction.options.getFocused().toLowerCase();
-        console.log(focusedValue);
+    const focusedValue = interaction.options.getFocused().toLowerCase();
 
+    if (commandType === 'play' || commandType === 'remove' || commandType === 'import') {
+        console.log(focusedValue);
+        
+
+        let queryExp = (commandType === 'import') ? {name: new RegExp(`^${focusedValue}`)} : {guildId: guildId, name: new RegExp(`^${focusedValue}`)};
+        let selectLambda = (commandType === 'import') ? ((entry: { name: string; guildId: string }) => ({ name: `${entry.name}:${entry.guildId}`, value: `${entry.name}:${entry.guildId}` })) : ((entry: { name: string; guildId: string }) => ({ name: entry.name, value: entry.name }));
         // The sound bite's name starts with the focused value, we can use regex directly in the query to simplify this
-        SoundBite.find({guildId: guildId, name: new RegExp(`^${focusedValue}`)})
+        SoundBite.find(queryExp)
         .select('name guildId')
         .then(async mappings => {
+
             const filtered = mappings.slice(0, 25); // Gets the first 25 results, this is the discord API limit for choises.
             await interaction.respond(
-                filtered.map(entry => ({ name: entry.name, value: entry.name })),
+                filtered.map(selectLambda)
             );
         })
         .catch(async err => {
@@ -309,6 +323,10 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     else if (commandType === 'volume') {
         let newValue = interaction.options.getNumber('newvalue');
         handleVolume(interaction, newValue);
+    }
+    else if (commandType === 'import') {
+        let selector = interaction.options.getString('selector', true);
+        handleImport(interaction, selector);
     }
 }
 
@@ -771,6 +789,57 @@ async function handleVolume(interaction : ChatInputCommandInteraction, newValue:
             console.log(errMsg, ex);
         }
     }
+}
+
+async function handleImport(interaction: ChatInputCommandInteraction, selector: string) {
+    
+    if (interaction.guild?.id == undefined) {
+        return;
+    }
+
+    let guildId = interaction.guild?.id
+    let split = selector.split(':');
+    let name = split[0];
+    let originalGuildId = split[1];
+
+    SoundBite.findOne({ name: name, guildId: originalGuildId}).orFail()
+    .then(async result => {
+        const newSoundBite = new SoundBite({
+            name: result.name,
+            data: result.data,
+            guildId: guildId,
+            extension: result.extension,
+            creator: result.creator,
+        });
+
+        newSoundBite.save()
+        .then(_ => {
+            let successMsg = `Imported sound bite '${result.name}' from ${originalGuildId}.`;
+            console.log(successMsg);
+            interaction.editReply(successMsg);
+        })
+        .catch(err => {
+            let errorMsg = `Failed to save '${name}'`;
+
+            if (err.code === 11000) {
+                errorMsg += ', name already exists';
+            }
+            else {
+                errorMsg += ', unknown error';
+                console.log(err);
+            }
+
+            interaction.editReply(errorMsg);
+        });
+
+    })
+    .catch(async err => {
+        let errMsg = `Sound bite with name '${name}' does not exist on guild with id ${originalGuildId}!`;
+        console.log(errMsg, err);
+        await interaction.editReply(errMsg);
+        return;
+    });
+
 }
 
 const arrayChunks = (array: Array<any>, chunk_size: number) => Array(Math.ceil(array.length / chunk_size)).fill(null).map((_, index) => index * chunk_size).map(begin => array.slice(begin, begin + chunk_size));
