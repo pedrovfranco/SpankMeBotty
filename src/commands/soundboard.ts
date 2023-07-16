@@ -214,6 +214,11 @@ export let data = new SlashCommandBuilder()
             .setRequired(true)
             .setAutocomplete(true)
         )
+        .addStringOption(option => option
+            .setName('new_name')
+            .setDescription('The new name of the imported sound bite. Optional.')
+            .setRequired(false)
+        )
 );
 
 async function checkPermission(interaction: BaseInteraction) {
@@ -325,7 +330,8 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     }
     else if (commandType === 'import') {
         let selector = interaction.options.getString('selector', true);
-        handleImport(interaction, selector);
+        let newName = interaction.options.getString('new_name', false);
+        handleImport(interaction, selector, newName);
     }
 }
 
@@ -790,9 +796,10 @@ async function handleVolume(interaction : ChatInputCommandInteraction, newValue:
     }
 }
 
-async function handleImport(interaction: ChatInputCommandInteraction, selector: string) {
+async function handleImport(interaction: ChatInputCommandInteraction, selector: string, newName: string | null) {
     
-    if (interaction.guild?.id == undefined) {
+    if (interaction.guild?.id == undefined || interaction.member?.user.id == undefined || !(interaction.member?.user instanceof User)) {
+        interaction.editReply('Something went wrong.');
         return;
     }
 
@@ -800,15 +807,16 @@ async function handleImport(interaction: ChatInputCommandInteraction, selector: 
     let split = selector.split(':');
     let name = split[0];
     let originalGuildId = split[1];
+    let creatorId = interaction.member.user.tag;
 
     SoundBite.findOne({ name: name, guildId: originalGuildId}).orFail()
     .then(async result => {
         const newSoundBite = new SoundBite({
-            name: result.name,
+            name: newName ?? result.name,
             data: result.data,
             guildId: guildId,
             extension: result.extension,
-            creator: result.creator,
+            creator: creatorId ?? result.creator,
         });
 
         newSoundBite.save()
