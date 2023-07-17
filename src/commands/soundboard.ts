@@ -18,6 +18,7 @@ const maxSoundbiteDuration = 10; // 5 seconds
 const soundBitesFolderName = 'soundbites';
 const moreButtonId = 'morebuttonID';
 const backButtonId = 'backbuttonID';
+const ffmpegLoudnessUnits = -16;
 
 export class Duration {
     hours: number;
@@ -407,7 +408,7 @@ async function downloadAndNormaliseAudioFile(soundBiteName: string, extension: s
         ffmpeg()
             .input(filePath)
             // .outputOptions('-c copy')
-            .audioFilters('loudnorm=I=-18:LRA=7:TP=-2:print_format=json')
+            .audioFilters(`loudnorm=I=${ffmpegLoudnessUnits}:LRA=7:TP=-2:print_format=json`)
             .output(normFilePath)
             .on('end', async () => {
                 console.log('Conversion completed successfully');
