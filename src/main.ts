@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, Collection } from 'discord.js';
+import { Client, GatewayIntentBits, Collection, Guild } from 'discord.js';
 import { generateDependencyReport } from '@discordjs/voice';
 import fs from 'fs';
 import path from 'path';
@@ -82,7 +82,7 @@ async function getCommands() {
 // 	}, 60 * 1000); // Polls twitch every minute
 // }
 
-function LoadGuildSettings() {
+function LoadGuildSettings(client: Client) {
     GuildSettings.find({})
     .then(mappings => {
 		for (let i = 0; i < mappings.length; i++) {
@@ -93,6 +93,9 @@ function LoadGuildSettings() {
 
 			changeVolume(entry.guildId, entry.musicvolume, false);
 			changeSoundboardVolume(entry.guildId, entry.soundboardVolume, false);
+
+			// Deletes the guild commands associated with the guildId
+			client.guilds.cache.get(entry.guildId)?.commands.set([]);
 		}
     })
     .catch(err => {
