@@ -124,7 +124,7 @@ async function main() {
 
 	// startInygonRoutine();
 
-	LoadGuildSettings();
+	LoadGuildSettings(client);
 
 	printDicordjsVoiceDependencyReport();
 
