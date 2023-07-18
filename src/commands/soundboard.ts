@@ -14,7 +14,7 @@ import { ReReadable } from 'rereadable-stream';
 import { alertAndLog, userInVoiceChannel } from '../common/common';
 
 const maxFileSize = 1 << 19; // 512 KB
-const maxSoundbiteDuration = 10; // 5 seconds
+const maxSoundbiteDuration = 20;
 const soundBitesFolderName = 'soundbites';
 const moreButtonId = 'morebuttonID';
 const backButtonId = 'backbuttonID';
