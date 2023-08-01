@@ -8,4 +8,4 @@ services:
     environment:
       - NODE_ENV=${NODE_ENV:-development}
     # image: gcr.io/spank-me-botty/spank-me-botty
-    restart: on-failure
+    restart: on-failure:5
