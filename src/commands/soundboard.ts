@@ -702,7 +702,7 @@ async function handleList(interaction: ChatInputCommandInteraction) {
             for (let i = 0; i < mappings.length; i++) {
                 const entry = mappings[i];
 
-                if ((i+1) % (maxRowSize*maxNumRows) == 0) { // The "more" button
+                if ((buttons.length+1) % (maxRowSize*maxNumRows) == 0) { // The "more" button
                     buttons.push(new ButtonBuilder()
                         .setStyle(ButtonStyle.Secondary)
                         .setCustomId(`${guildId}-${moreButtonId}${moreButtonCounter}`)
