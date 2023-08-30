@@ -34,7 +34,7 @@
     "genius-lyrics-api": "^3.2.0",
     "image-downloader": "^4.3.0",
     "image-type": "4.1.0",
-    "mongoose": "^7.4.4",
+    "mongoose": "^7.5.0",
     "play-dl": "https://github.com/pedrovfranco/play-dl.git",
     "rereadable-stream": "^1.4.14",
     "sodium-native": "^4.0.1",
