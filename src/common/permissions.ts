@@ -21,7 +21,7 @@ export async function hasPermission(interaction : BaseInteraction, type: Permiss
         let roles = mappings.map(x => x.roleName);
         let hasRole = interaction.member.roles.cache.some(role => roles.includes(role.name));
     
-        console.log('permissions = ' + JSON.stringify(roles));
+        // console.log('permissions = ' + JSON.stringify(roles));
     
         let hasPermission = (roles.length === 0 || hasRole);
         resolve({userHasPermission: hasPermission, roles: roles});

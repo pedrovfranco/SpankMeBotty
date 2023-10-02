@@ -411,7 +411,7 @@ async function downloadAndNormaliseAudioFile(soundBiteName: string, extension: s
             .audioFilters(`loudnorm=I=${ffmpegLoudnessUnits}:LRA=7:TP=-2:print_format=json`)
             .output(normFilePath)
             .on('end', async () => {
-                console.log('Conversion completed successfully');
+                console.log('Successfully normalized audio.');
                 fs.unlinkSync(filePath);
                 fs.renameSync(normFilePath, filePath);
                 resolve();
@@ -599,7 +599,7 @@ async function WriteStreamToFile(interaction: ChatInputCommandInteraction, guild
         .output(filePath)
         // .outputOptions('-c copy') // Disabled due to inaccuracies when using timestamps and -c copy. See https://trac.ffmpeg.org/wiki/Seeking#Seekingwhiledoingacodeccopy
         .on('end', async () => {
-            console.log('Conversion completed successfully');
+            // console.log('Conversion completed successfully');
             console.log(`Took ${performance.now()-start} ms.`);
             let buffer = fs.readFileSync(filePath);
 
@@ -698,7 +698,6 @@ async function handleList(interaction: ChatInputCommandInteraction) {
         let moreButtonCounter = 0;
         if (mappings.length !== 0) {
 
-            // list += '\n\`';
             for (let i = 0; i < mappings.length; i++) {
                 const entry = mappings[i];
 
@@ -718,18 +717,13 @@ async function handleList(interaction: ChatInputCommandInteraction) {
                     moreButtonCounter++;
                 }
 
-                // list += entry.name;
                 let newButton = new ButtonBuilder()
                     .setStyle(ButtonStyle.Secondary)
                     .setCustomId(`${guildId}-${entry.name}`)
                     .setLabel(entry.name)
 
                 buttons.push(newButton);
-                // if (i < mappings.length-1) {
-                //     list += '\n';
-                // }
             }
-            // list += '\`';
         }
 
 
@@ -740,7 +734,9 @@ async function handleList(interaction: ChatInputCommandInteraction) {
 
         collector.on('collect', async buttonInteraction => {
             const id = buttonInteraction.customId;
-            const buttonName = id.split('-')[1];
+            const separatorChar = '-';
+            const split = id.split(separatorChar);
+            const buttonName = split.slice(1).join(separatorChar); // The soundbite name might contains the separatorChar, so join the rest.
 
             if (buttonName.startsWith(moreButtonId)) {
                 let buttonId = parseInt(buttonName.replace(moreButtonId, ''));

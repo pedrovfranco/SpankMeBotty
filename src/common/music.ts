@@ -293,7 +293,7 @@ async function playNextSong(guildId: string) : Promise<boolean> {
                     }
                 });
 
-                applyKeepAliveHotfix(connection);
+                // applyKeepAliveHotfix(connection);
             }
 
             guildData.voiceConnection = connection;
@@ -433,7 +433,7 @@ export async function playTTS(interaction: BaseInteraction, readStream: Readable
                 }
             });
 
-            applyKeepAliveHotfix(connection);
+            // applyKeepAliveHotfix(connection);
         }
 
         guildData.voiceConnection = connection;
@@ -465,7 +465,7 @@ export async function playTTS(interaction: BaseInteraction, readStream: Readable
         try {
             await entersState(ttsPlayer, AudioPlayerStatus.Playing, 5000);
             // The player has entered the Playing state within 5 seconds
-            console.log('TTS has started');
+            // console.log('TTS has started');
             
             callback?.call(null); // Success
 
@@ -553,7 +553,7 @@ async function onTTSEnd(this: string, oldState: VoiceConnectionState, newState: 
         }
     }
 
-    console.log("TTS ended");
+    // console.log("TTS ended");
 }
 
 export async function skipCurrentSong(guildId: string, count: number = 1): Promise<boolean> {
