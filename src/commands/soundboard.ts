@@ -477,8 +477,10 @@ async function handleRegister(interaction: ChatInputCommandInteraction, name: st
                             filename = match[1].replace(/['"]/g, '');
                         }
                     }
+
+                    let extension = filename.substring(filename.lastIndexOf('.'));
         
-                    WriteStreamToFile(interaction, guildId, creatorId, name, startTime, endTime, filename, folderPath, response, volumeScale);
+                    WriteStreamToFile(interaction, guildId, creatorId, name, startTime, endTime, extension, folderPath, response, volumeScale);
                 });
     
                 request.on('error', (error) => {
