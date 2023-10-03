@@ -735,26 +735,31 @@ async function handleList(interaction: ChatInputCommandInteraction) {
         const collector = response.createMessageComponentCollector({ componentType: ComponentType.Button, /* time: 3_600_000 */ });
 
         collector.on('collect', async buttonInteraction => {
-            const id = buttonInteraction.customId;
-            const separatorChar = '-';
-            const split = id.split(separatorChar);
-            const buttonName = split.slice(1).join(separatorChar); // The soundbite name might contains the separatorChar, so join the rest.
-
-            if (buttonName.startsWith(moreButtonId)) {
-                let buttonId = parseInt(buttonName.replace(moreButtonId, ''));
-                await response.edit({ content: list, components: pages[buttonId+1]});
-                await buttonInteraction.deferUpdate();
-                return;
+            try {
+                const id = buttonInteraction.customId;
+                const separatorChar = '-';
+                const split = id.split(separatorChar);
+                const buttonName = split.slice(1).join(separatorChar); // The soundbite name might contains the separatorChar, so join the rest.
+    
+                if (buttonName.startsWith(moreButtonId)) {
+                    let buttonId = parseInt(buttonName.replace(moreButtonId, ''));
+                    await response.edit({ content: list, components: pages[buttonId+1]});
+                    await buttonInteraction.deferUpdate();
+                    return;
+                }
+                else if (buttonName.startsWith(backButtonId)) {
+                    let buttonId = parseInt(buttonName.replace(backButtonId, ''));
+                    await response.edit({ content: list, components: pages[buttonId]});
+                    await buttonInteraction.deferUpdate();
+                    return;
+                }
+    
+                await buttonInteraction.deferReply();
+                await handlePlay(buttonInteraction, buttonName);
             }
-            else if (buttonName.startsWith(backButtonId)) {
-                let buttonId = parseInt(buttonName.replace(backButtonId, ''));
-                await response.edit({ content: list, components: pages[buttonId]});
-                await buttonInteraction.deferUpdate();
-                return;
+            catch (e) {
+                console.log('Button interaction failed!');
             }
-
-            await buttonInteraction.deferReply();
-            await handlePlay(buttonInteraction, buttonName);
         });
     })
     .catch(err => {
