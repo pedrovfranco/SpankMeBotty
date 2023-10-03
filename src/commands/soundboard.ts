@@ -474,7 +474,7 @@ async function handleRegister(interaction: ChatInputCommandInteraction, name: st
                         // ChatGPT secret sauce
                         const match = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
                         if (match && match[1]) {
-                            filename = match[1].replace(/['"]/g, '');
+                            filename = match[1].replace(/['"]/g, '') ?? filename;
                         }
                     }
 
