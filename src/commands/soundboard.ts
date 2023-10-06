@@ -4,11 +4,17 @@ import path from 'path';
 import { http, https } from 'follow-redirects';
 import ffmpeg from 'fluent-ffmpeg';
 import playdl from 'play-dl';
+import os from 'os';
+
+import ytdlpWrap from 'yt-dlp-wrap';
+let ytdlpBinaryPath = './binaries/ytdlp';
+if (os.platform() == 'win32')
+    ytdlpBinaryPath += '.exe';
 
 import SoundBite from '../database/models/soundBite';
 import { playTTS, addGuild, changeSoundboardVolume } from '../common/music';
 import { PermissionType, hasPermission } from '../common/permissions';
-import {  Readable } from 'stream';
+import { Readable } from 'stream';
 import { spawn } from 'child_process';
 import { ReReadable } from 'rereadable-stream';
 import { alertAndLog, userInVoiceChannel } from '../common/common';
@@ -452,18 +458,47 @@ async function handleRegister(interaction: ChatInputCommandInteraction, name: st
             const protocol = url.protocol === 'https:' ? https : http;
     
             if (await playdl.validate(link) == 'yt_video') {
-                let ytdlStream = await playdl.stream(link, { quality: 2, discordPlayerCompatibility: true  });
-    
-                let extension = '.webm';
                 
-                if (ytdlStream.type.includes('webm')) {
-                    extension = '.webm';
+                // ----------------------------------PLAY-DL---------------------------------------
+                // let ytdlStream = await playdl.stream(link, { quality: 2, discordPlayerCompatibility: true  });
+                // let stream = ytdlStream.stream;
+
+                // let extension = '.webm';
+                
+                // if (ytdlStream.type.includes('webm')) {
+                //     extension = '.webm';
+                // }
+                // else if (ytdlStream.type.includes('ogg')) {
+                //     extension = '.ogg';
+                // }
+                // let stream = ytdlStream.stream;
+                // ----------------------------------PLAY-DL---------------------------------------
+
+                // ----------------------------------YT-DLP---------------------------------------
+
+                if (!fs.existsSync(ytdlpBinaryPath)) {
+                    let binaryFolderPath = path.dirname(ytdlpBinaryPath);
+                    fs.rmSync(binaryFolderPath, {force: true, recursive: true});
+                    fs.mkdirSync(binaryFolderPath, {recursive: true});
+                    await ytdlpWrap.downloadFromGithub(
+                        ytdlpBinaryPath
+                    );
                 }
-                else if (ytdlStream.type.includes('ogg')) {
-                    extension = '.ogg';
-                }
-    
-                WriteStreamToFile(interaction, guildId, creatorId, name, startTime, endTime, extension, folderPath, ytdlStream.stream, volumeScale);
+
+                const ytdlp = new ytdlpWrap(ytdlpBinaryPath);
+
+                let extension = ".webm"
+                let stream = ytdlp.execStream([
+                    link,
+                    '-f',
+                    `bestaudio[ext=${extension.substring(1)}][acodec=opus]`,
+                    // '--limit-rate',
+                    // '50K'
+                ]);
+
+                // ----------------------------------YT-DLP---------------------------------------
+
+                WriteStreamToFile(interaction, guildId, creatorId, name, startTime, endTime, extension, folderPath, stream, volumeScale);
             }
             else {
                 const request = protocol.get(url, (response) => {
@@ -513,12 +548,10 @@ async function WriteStreamToFile(interaction: ChatInputCommandInteraction, guild
     }
 
     const filePath = path.join(folderPath, name + fileExtension);
-    // let bufArr = new Array<any>();
 
     if (!fs.existsSync(folderPath))
         fs.mkdirSync(folderPath, { recursive: true});
 
-    // stream.on('data', chunk => bufArr.push(chunk));
     stream.on('error', async (x) => {
         let errMsg = `Something went wrong while downloading the sound bite.`;
         console.log(errMsg, x);
@@ -532,7 +565,6 @@ async function WriteStreamToFile(interaction: ChatInputCommandInteraction, guild
     let ffprobeData = "";
     stream.pipe(ffprobe.stdin);
     
-    
     ffprobe.stderr.on('data', (data) => {
         console.error('Error analyzing video:', data.toString());
     });
@@ -540,7 +572,6 @@ async function WriteStreamToFile(interaction: ChatInputCommandInteraction, guild
     ffprobe.stdout.on('data', (data) => {
         ffprobeData += data.toString(); // Decode the data to string
     });
-
 
     ffprobe.stdout.on('end', async () => {
         let duration: number;
@@ -556,6 +587,7 @@ async function WriteStreamToFile(interaction: ChatInputCommandInteraction, guild
             return;
         }
 
+        stream.unpipe(ffprobe.stdin);
         ffprobe.kill();
 
         let ffmpegStartTime = startTime == null ? new Duration(0, 0, 0, 0) : Duration.parse(startTime);
@@ -577,7 +609,6 @@ async function WriteStreamToFile(interaction: ChatInputCommandInteraction, guild
             return;
         }
 
-        // let newFilePath = path.join(path.dirname(filePath), path.basename(filePath, path.extname(filePath)) + 'temp' + path.extname(filePath));
         let inputOptions = [];
 
         if (startTime != null) {

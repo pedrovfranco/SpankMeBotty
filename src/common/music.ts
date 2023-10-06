@@ -6,6 +6,15 @@ import { YouTubeStream } from 'play-dl';
 import { Readable } from "stream";
 import workerpool from 'workerpool';
 import path from 'path';
+import os from 'os';
+import fs from 'fs';
+import { ReReadable } from 'rereadable-stream';
+
+import ytdlpWrap, { YTDlpReadable } from 'yt-dlp-wrap';
+let ytdlpBinaryPath = './binaries/ytdlp';
+if (os.platform() == 'win32')
+    ytdlpBinaryPath += '.exe';
+
 
 import {rollDice} from './common';
 import GuildSettings from '../database/models/guildSettings';
@@ -51,7 +60,7 @@ export class GuildMusicData {
     audioPlayer?: AudioPlayer;
     audioPlayerResource?: AudioResource;
     connectionSubscription?: PlayerSubscription;
-    currentStream?: YouTubeStream;
+    currentStream?: Readable;
 
     ttsAudioPlayer?: AudioPlayer;
     ttsAudioPlayerResource?: AudioResource;
@@ -59,7 +68,7 @@ export class GuildMusicData {
     ttsShouldPause?: boolean;
 }
 
-export let maxYtdlRetries = 3;
+export const maxYtdlRetries = 3;
 export const DEBUG_WORKER = true;
 export const directStreamMacro = 'direct://';
 
@@ -306,13 +315,65 @@ async function playNextSong(guildId: string) : Promise<boolean> {
                 player.on('error', onAudioPlayerError.bind(guildData.guildId));
             }
 
-            let ytdlStream: YouTubeStream | undefined = undefined;
+            let ytdlStream: YTDlpReadable | undefined = undefined;
             let resource: AudioResource;
             let retryCount = 0;
+
+            if (!fs.existsSync(ytdlpBinaryPath)) {
+                let binaryFolderPath = path.dirname(ytdlpBinaryPath);
+                fs.rmSync(binaryFolderPath, {force: true, recursive: true});
+                fs.mkdirSync(binaryFolderPath, {recursive: true});
+                await ytdlpWrap.downloadFromGithub(
+                    ytdlpBinaryPath
+                );
+            }
+
             if (!directStream) {
                 while (retryCount < maxYtdlRetries) {
                     try {
-                        ytdlStream = await playdl.stream(link, { quality: 2, discordPlayerCompatibility: false });
+
+                        // ----------------------------------PLAY-DL---------------------------------------
+
+                        // ytdlStream = await playdl.stream(link, { quality: 2, discordPlayerCompatibility: false });
+                        // let stream = ytdlStream.stream;
+            
+                        // ----------------------------------PLAY-DL---------------------------------------
+
+                        // ----------------------------------YT-DLP---------------------------------------
+
+                        const ytdlp = new ytdlpWrap(ytdlpBinaryPath);
+        
+                        let extension = ".webm"
+                        ytdlStream = ytdlp.execStream([
+                            link,
+                            '-f',
+                            `bestaudio[ext=${extension.substring(1)}][acodec=opus]`,
+                            // '--limit-rate',
+                            // '50K'
+                        ]);
+                        // .on('progress', (progress) =>
+                        //     console.log(
+                        //     progress.percent,
+                        //     progress.totalSize,
+                        //     progress.currentSpeed,
+                        //     progress.eta
+                        // )
+                        // )
+                        // .on('ytDlpEvent', (eventType, eventData) =>
+                        //     console.log(eventType, eventData)
+                        // )
+                        // .on('error', (error) => {
+                        //     console.error(error)
+                        // })
+                        // .on('close', () => {
+                        //     console.log('all done')
+                        // });
+
+                        let bufSize = 8096;
+                        ytdlStream = ytdlStream.pipe(new ReReadable({length: bufSize})).rewind();
+                       
+                        // ----------------------------------YT-DLP---------------------------------------
+
                         break;
                     }
                     catch (e: any) {
@@ -341,7 +402,8 @@ async function playNextSong(guildId: string) : Promise<boolean> {
                 }
 
                 guildData.currentStream = ytdlStream;
-                resource = createResource(ytdlStream.stream, ytdlStream.type, true, video.title);
+                // resource = createResource(ytdlStream.stream, ytdlStream.type, true, video.title);
+                resource = createResource(ytdlStream, StreamType.Arbitrary, true, video.title);
             }
             else {
                 resource = createResource(link.substring(directStreamMacro.length), StreamType.Arbitrary, true, video.title);

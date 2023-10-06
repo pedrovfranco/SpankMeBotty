@@ -39,6 +39,7 @@
     "rereadable-stream": "^1.4.14",
     "sodium-native": "^4.0.1",
     "workerpool": "^6.4.0",
+    "yt-dlp-wrap": "^2.3.12",
     "ytdl-core": "^4.11.2"
   },
   "devDependencies": {
