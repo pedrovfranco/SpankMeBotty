@@ -460,6 +460,7 @@ async function handleRegister(interaction: ChatInputCommandInteraction, name: st
             if (await playdl.validate(link) == 'yt_video') {
                 
                 // ----------------------------------PLAY-DL---------------------------------------
+                
                 // let ytdlStream = await playdl.stream(link, { quality: 2, discordPlayerCompatibility: true  });
                 // let stream = ytdlStream.stream;
 
@@ -472,6 +473,7 @@ async function handleRegister(interaction: ChatInputCommandInteraction, name: st
                 //     extension = '.ogg';
                 // }
                 // let stream = ytdlStream.stream;
+
                 // ----------------------------------PLAY-DL---------------------------------------
 
                 // ----------------------------------YT-DLP---------------------------------------

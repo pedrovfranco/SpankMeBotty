@@ -28,7 +28,7 @@ async function handleInteraction(interaction: BaseInteraction) {
 	}
 
 	if (interaction.isChatInputCommand()) {
-		console.log('Received command ' + interaction.commandName);
+		console.log(`Received command ${interaction.commandName} from guildId ${interaction.guildId} (${interaction.guild.name})`);
 		const command = commands.get(interaction.commandName);
 		
 		if (command == undefined) {
@@ -45,7 +45,7 @@ async function handleInteraction(interaction: BaseInteraction) {
 	}
 	else if (interaction.isAutocomplete()) {
 		let commandName = interaction.commandName;
-		console.log('Received autocomplete for command ' + commandName);
+		console.log(`Received autocomplete for command ${commandName} from guildId ${interaction.guildId} (${interaction.guild.name})`);
 		const command = commands.get(commandName);
 		
 		if (command == undefined) {
