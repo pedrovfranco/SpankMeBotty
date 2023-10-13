@@ -315,42 +315,42 @@ async function playNextSong(guildId: string) : Promise<boolean> {
                 player.on('error', onAudioPlayerError.bind(guildData.guildId));
             }
 
-            let ytdlStream: YTDlpReadable | undefined = undefined;
+            let ytStream: Readable | undefined = undefined;
+            let streamType: StreamType | undefined = StreamType.Arbitrary;
             let resource: AudioResource;
             let retryCount = 0;
 
-            if (!fs.existsSync(ytdlpBinaryPath)) {
-                let binaryFolderPath = path.dirname(ytdlpBinaryPath);
-                fs.rmSync(binaryFolderPath, {force: true, recursive: true});
-                fs.mkdirSync(binaryFolderPath, {recursive: true});
-                await ytdlpWrap.downloadFromGithub(
-                    ytdlpBinaryPath
-                );
-            }
+            // if (!fs.existsSync(ytdlpBinaryPath)) {
+            //     let binaryFolderPath = path.dirname(ytdlpBinaryPath);
+            //     fs.rmSync(binaryFolderPath, {force: true, recursive: true});
+            //     fs.mkdirSync(binaryFolderPath, {recursive: true});
+            //     await ytdlpWrap.downloadFromGithub(
+            //         ytdlpBinaryPath
+            //     );
+            // }
 
             if (!directStream) {
                 while (retryCount < maxYtdlRetries) {
                     try {
 
                         // ----------------------------------PLAY-DL---------------------------------------
-
-                        // ytdlStream = await playdl.stream(link, { quality: 2, discordPlayerCompatibility: false });
-                        // let stream = ytdlStream.stream;
-            
+                        let strm = (await playdl.stream(link, { quality: 2, discordPlayerCompatibility: false }));
+                        ytStream = strm.stream;
+                        streamType = strm.type;
                         // ----------------------------------PLAY-DL---------------------------------------
 
                         // ----------------------------------YT-DLP---------------------------------------
 
-                        const ytdlp = new ytdlpWrap(ytdlpBinaryPath);
+                        // const ytdlp = new ytdlpWrap(ytdlpBinaryPath);
         
-                        let extension = ".webm"
-                        ytdlStream = ytdlp.execStream([
-                            link,
-                            '-f',
-                            `bestaudio[ext=${extension.substring(1)}][acodec=opus]`,
-                            // '--limit-rate',
-                            // '50K'
-                        ]);
+                        // let extension = ".webm"
+                        // ytStream = ytdlp.execStream([
+                        //     link,
+                        //     '-f',
+                        //     `bestaudio[ext=${extension.substring(1)}][acodec=opus]`,
+                        //     // '--limit-rate',
+                        //     // '50K'
+                        // ]);
                         // .on('progress', (progress) =>
                         //     console.log(
                         //     progress.percent,
@@ -370,7 +370,7 @@ async function playNextSong(guildId: string) : Promise<boolean> {
                         // });
 
                         let bufSize = 8096;
-                        ytdlStream = ytdlStream.pipe(new ReReadable({length: bufSize})).rewind();
+                        // ytStream = ytStream.pipe(new ReReadable({length: bufSize})).rewind();
                        
                         // ----------------------------------YT-DLP---------------------------------------
 
@@ -388,12 +388,13 @@ async function playNextSong(guildId: string) : Promise<boolean> {
                             return false;
                         }
 
+                        ytStream?.destroy();
                         console.log('Exception raised when using ytdl, remaning retries: ' + deltaRetries);
                         console.log(e);
                     }
                 }
 
-                if (ytdlStream == undefined) {
+                if (ytStream == undefined) {
                     let errMsg = 'Failed to play this song, something went wrong.';
                     console.log(errMsg);
                     interaction.channel.send(errMsg);
@@ -401,14 +402,14 @@ async function playNextSong(guildId: string) : Promise<boolean> {
                     return false;
                 }
 
-                guildData.currentStream = ytdlStream;
-                // resource = createResource(ytdlStream.stream, ytdlStream.type, true, video.title);
-                resource = createResource(ytdlStream, StreamType.Arbitrary, true, video.title);
+                resource = createResource(ytStream, streamType, true, video.title);
+                // resource = createResource(ytStream, StreamType.Arbitrary, true, video.title);
             }
             else {
                 resource = createResource(link.substring(directStreamMacro.length), StreamType.Arbitrary, true, video.title);
             }
-    
+            
+            guildData.currentStream = ytStream;
             guildData.audioPlayerResource = resource;
             resource?.volume?.setVolume(guildData.volume);
 
@@ -624,10 +625,13 @@ export async function skipCurrentSong(guildId: string, count: number = 1): Promi
     if (guildData.queue.length - count < 0) {
         return false;
     }
-
+    
     guildData.audioPlayer?.removeAllListeners(AudioPlayerStatus.Idle);
     guildData.queue.splice(guildData.playing, count);
     guildData.audioPlayer?.pause();
+
+    // guildData.currentStream?.destroy();
+    // guildData.currentStream = undefined;
 
     await playNextSong(guildId);
 
