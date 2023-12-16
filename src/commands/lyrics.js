@@ -66,6 +66,13 @@ export async function execute(interaction) {
         };
         
         const lyricsStr = await lyrics.getLyrics(options);
+
+        if (lyrics == null)
+        {
+            interaction.editReply('Failed to fetch lyrics for this song.');
+            return;
+        }
+
         if (lyricsStr.length > discordMaxMessageSize * 5) {
             interaction.editReply('The lyrics seem too long for a song, skipping.');
             return;
