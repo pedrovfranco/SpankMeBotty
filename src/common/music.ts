@@ -820,7 +820,7 @@ export async function destroyGuildConnection(guildId: string): Promise<boolean> 
 
     guildData.audioPlayer?.stop();
     guildData.connectionSubscription?.unsubscribe();
-    guildData.currentStream?.pause(interpolateSilence);
+    // guildData.currentStream?.pause(interpolateSilence);
 
     guildData.ttsAudioPlayer?.stop();
     guildData.ttsConnectionSubscription?.unsubscribe();
