@@ -15,7 +15,6 @@ let ytdlpBinaryPath = './binaries/ytdlp';
 if (os.platform() == 'win32')
     ytdlpBinaryPath += '.exe';
 
-
 import {rollDice} from './common';
 import GuildSettings from '../database/models/guildSettings';
 import { GetAuthFromDb } from '../database/playdlAuthScript';
@@ -75,6 +74,7 @@ export const directStreamMacro = 'direct://';
 const pool = workerpool.pool(path.join(__dirname, 'music_worker.js'), {maxWorkers: 4, workerType: 'thread'});
 const defaultMusicVolume = 0.2;
 const defaultSoundBoardVolume = defaultMusicVolume; // 0.2
+const interpolateSilence = true;
 
 let guilds: Map<string, GuildMusicData> =  new Map<string, GuildMusicData>();
 
@@ -518,7 +518,7 @@ export async function playTTS(interaction: BaseInteraction, readStream: Readable
             guildData.ttsShouldPause = (guildData.audioPlayer.state.status == AudioPlayerStatus.Buffering || guildData.audioPlayer.state.status == AudioPlayerStatus.Playing);
 
             if (guildData.ttsShouldPause) {
-                guildData.audioPlayer.pause();
+                guildData.audioPlayer.pause(interpolateSilence);
             }
         }
 
@@ -628,7 +628,7 @@ export async function skipCurrentSong(guildId: string, count: number = 1): Promi
     
     guildData.audioPlayer?.removeAllListeners(AudioPlayerStatus.Idle);
     guildData.queue.splice(guildData.playing, count);
-    guildData.audioPlayer?.pause();
+    guildData.audioPlayer?.pause(interpolateSilence);
 
     // guildData.currentStream?.destroy();
     // guildData.currentStream = undefined;
@@ -645,7 +645,7 @@ export function pause(guildId: string): boolean {
         return false;
     }
 
-    return guildData.audioPlayer.pause();
+    return guildData.audioPlayer.pause(interpolateSilence);
 }
 
 export function resume(guildId: string): boolean {
@@ -820,7 +820,7 @@ export async function destroyGuildConnection(guildId: string): Promise<boolean> 
 
     guildData.audioPlayer?.stop();
     guildData.connectionSubscription?.unsubscribe();
-    guildData.currentStream?.pause();
+    guildData.currentStream?.pause(interpolateSilence);
 
     guildData.ttsAudioPlayer?.stop();
     guildData.ttsConnectionSubscription?.unsubscribe();
