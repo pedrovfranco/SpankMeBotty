@@ -409,6 +409,7 @@ async function playNextSong(guildId: string) : Promise<boolean> {
                 resource = createResource(link.substring(directStreamMacro.length), StreamType.Arbitrary, true, video.title);
             }
             
+            let oldStream = guildData.currentStream;
             guildData.currentStream = ytStream;
             guildData.audioPlayerResource = resource;
             resource?.volume?.setVolume(guildData.volume);
@@ -429,6 +430,8 @@ async function playNextSong(guildId: string) : Promise<boolean> {
 
             interaction.channel.send('Playing: ' + video.title);
             console.log('Playing: ' + video.title);
+
+            oldStream?.destroy();
             
             return true;
         }
@@ -629,6 +632,7 @@ export async function skipCurrentSong(guildId: string, count: number = 1): Promi
     guildData.audioPlayer?.removeAllListeners(AudioPlayerStatus.Idle);
     guildData.queue.splice(guildData.playing, count);
     guildData.audioPlayer?.pause(interpolateSilence);
+    // guildData.currentStream.
 
     // guildData.currentStream?.destroy();
     // guildData.currentStream = undefined;
@@ -820,7 +824,7 @@ export async function destroyGuildConnection(guildId: string): Promise<boolean> 
 
     guildData.audioPlayer?.stop();
     guildData.connectionSubscription?.unsubscribe();
-    // guildData.currentStream?.pause(interpolateSilence);
+    guildData.currentStream?.pause();
 
     guildData.ttsAudioPlayer?.stop();
     guildData.ttsConnectionSubscription?.unsubscribe();
