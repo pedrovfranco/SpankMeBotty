@@ -15,6 +15,7 @@ RUN apt-get -y install dumb-init
 
 ##################################### yt-dlp python3.10 dependency #####################################
 
+# # Install python3.10 using apt-get
 # # For some reason this gets stuck on docker....
 # RUN sed -i "precedence ::ffff:0:0/96  100" /etc/gai.conf
 # RUN add-apt-repository ppa:deadsnakes/ppa -y
