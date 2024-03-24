@@ -6,11 +6,11 @@ RUN apt-get update
 # RUN apt-get dist-upgrade -y
 RUN apt-get autoremove -y
 RUN apt-get autoclean
-RUN apt-get -y install dirmngr curl software-properties-common locales git cmake
-RUN apt-get -y install autoconf automake g++ libtool
-RUN apt-get -y install ffmpeg libmp3lame-dev x264
-
-RUN apt-get -y install dumb-init
+RUN apt-get -y install dirmngr curl software-properties-common locales git cmake \
+make autoconf automake g++ libtool \
+ffmpeg libmp3lame-dev x264 \
+build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev \
+dumb-init 
 
 
 ##################################### yt-dlp python3.10 dependency #####################################
@@ -25,7 +25,6 @@ RUN apt-get -y install dumb-init
 
 # Build python from source
 WORKDIR /tmp/python/
-RUN apt-get install -y make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev
 RUN wget https://www.python.org/ftp/python/3.10.0/Python-3.10.0.tar.xz
 RUN tar -xf Python-3.10.0.tar.xz
 WORKDIR /tmp/python/Python-3.10.0
