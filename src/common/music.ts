@@ -163,7 +163,7 @@ function addVoiceChannelToGuild(interaction : BaseInteraction, guildData: GuildM
     }
 }
 
-export async function addToQueue(interaction : ChatInputCommandInteraction, search_query: string) {
+export async function addToQueue(interaction : ChatInputCommandInteraction, search_query: string, queue_next: boolean = false): Promise<void> {
 
     if (interaction.guild == undefined || interaction.channel?.type == null || !(interaction.channel.type === ChannelType.GuildText || 
     interaction.channel.type === ChannelType.GuildVoice || 
@@ -178,22 +178,21 @@ export async function addToQueue(interaction : ChatInputCommandInteraction, sear
     }
 
     let guildData = addGuild(interaction.guild.id);
-
     addVoiceChannelToGuild(interaction, guildData);
 
     // Since the "getSong" call of the pool exec call can be either queued or just take along time (looking at you, ytpl...) we will defer the reply
-    // to let the discord API know we got the command successfully. It will also an "<application> is thinking..." message on the command reply field.
+    // to let the discord API know we got the command successfully. It will also write an "<application> is thinking..." message on the command reply field.
     await interaction.deferReply();
 
     if (DEBUG_WORKER) {
         const worker = await import('./music_worker');
         let result = await worker.getSong(search_query);
-        await handleMusicWorkerResult(interaction, guildData, result);
+        await handleMusicWorkerResult(interaction, guildData, result, queue_next);
     }
     else {
         pool.exec('getSong', [search_query])
         .then(async function(result: MusicWorkerResult | undefined) {
-            await handleMusicWorkerResult(interaction, guildData, result);
+            await handleMusicWorkerResult(interaction, guildData, result, queue_next);
         })
         .catch((err : Error) => {
             console.log(err);
@@ -201,7 +200,7 @@ export async function addToQueue(interaction : ChatInputCommandInteraction, sear
     }
 }
 
-async function handleMusicWorkerResult(interaction : ChatInputCommandInteraction, guildData: GuildMusicData, result: MusicWorkerResult | undefined) {
+async function handleMusicWorkerResult(interaction : ChatInputCommandInteraction, guildData: GuildMusicData, result: MusicWorkerResult | undefined, queue_next: boolean = false) {
     if (result == undefined) {
         interaction.editReply('Video not found');
         return;
@@ -214,6 +213,11 @@ async function handleMusicWorkerResult(interaction : ChatInputCommandInteraction
         return;
     }
 
+    if (interaction.guild == null) {
+        interaction.editReply('Something went wrong.');
+        return;
+    }
+
     let videoList = result.songArr;
     let playlistTitle = result.playlistTitle;
 
@@ -222,6 +226,11 @@ async function handleMusicWorkerResult(interaction : ChatInputCommandInteraction
         guildData.queue.push(videoElement);
     }
 
+    let shouldMove = guildData.queue.length >= 2;
+    if (queue_next &&  shouldMove) {
+        move(interaction.guild.id, guildData.queue.length-videoList.length, 1);
+    }
+    
     try {
         if (playlistTitle == null) {
             if (videoList.length === 1)
@@ -369,7 +378,7 @@ async function playNextSong(guildId: string) : Promise<boolean> {
                         //     console.log('all done')
                         // });
 
-                        let bufSize = 8096;
+                        // let bufSize = 8096;
                         // ytStream = ytStream.pipe(new ReReadable({length: bufSize})).rewind();
                        
                         // ----------------------------------YT-DLP---------------------------------------

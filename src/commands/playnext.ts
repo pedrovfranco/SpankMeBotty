@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction, GuildMember } from 'discord.js';
 
 import { alertAndLog } from '../common/common';
-import { addGuild, addToQueue, move } from '../common/music';
+import { addToQueue } from '../common/music';
 
 
 export let data = new SlashCommandBuilder()
@@ -24,16 +24,6 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         return;
     }
 
-    const guildData = addGuild(interaction.guild.id);
-
     const search_query = interaction.options.getString('youtube_video', true);
-
-    let shouldMove = guildData.queue.length >= 2;
-
-    await addToQueue(interaction, search_query);
-
-    if (shouldMove)
-    {
-        move(interaction.guild.id, guildData.queue.length-1, 1);
-    }
+    await addToQueue(interaction, search_query, true);
 }
