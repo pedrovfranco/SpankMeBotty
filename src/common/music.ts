@@ -220,17 +220,11 @@ async function handleMusicWorkerResult(interaction : ChatInputCommandInteraction
 
     let videoList = result.songArr;
     let playlistTitle = result.playlistTitle;
-
-    for (let i = 0; i < videoList.length; i++) {
-        let videoElement = videoList[i];
-        guildData.queue.push(videoElement);
-    }
-
     let shouldMove = guildData.queue.length >= 2;
-    if (queue_next &&  shouldMove) {
-        move(interaction.guild.id, guildData.queue.length-videoList.length, 1);
-    }
-    
+
+    let insertIndex = (shouldMove && queue_next) ? 1 : guildData.queue.length;
+    guildData.queue.splice(insertIndex, 0, ...videoList);
+
     try {
         if (playlistTitle == null) {
             if (videoList.length === 1)
