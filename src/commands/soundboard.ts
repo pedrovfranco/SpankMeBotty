@@ -699,9 +699,9 @@ async function handleRemove(interaction: ChatInputCommandInteraction, name: stri
 
     SoundBite.findOneAndDelete({ name: name, guildId: interaction.guild.id}).orFail()
     .then(async result => {
-        await interaction.editReply(`Removed sound bite '${result.name}'.`);
+        await interaction.editReply(`Removed sound bite '${result.value?.name}'.`);
 		let folderPath = path.join(__dirname, '..', soundBitesFolderName, guildId);
-		let filePath = path.join(folderPath, name + result.extension);
+		let filePath = path.join(folderPath, name + result.value?.extension);
         fs.unlinkSync(filePath);
     })
     .catch(async err => {

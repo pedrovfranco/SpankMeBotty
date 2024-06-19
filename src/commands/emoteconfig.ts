@@ -202,7 +202,7 @@ async function handleRemove(interaction: ChatInputCommandInteraction, emoteName:
 
     Emote.findOneAndDelete({ name: emoteName, guildId: interaction.guild.id}).orFail()
     .then(result => {
-        interaction.editReply('Removed emote ' + result.name);
+        interaction.editReply('Removed emote ' + result.value?.name);
     })
     .catch(err => {
         console.log(err);

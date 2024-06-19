@@ -337,43 +337,43 @@ async function playNextSong(guildId: string) : Promise<boolean> {
                     try {
 
                         // ----------------------------------PLAY-DL---------------------------------------
-                        let strm = (await playdl.stream(link, { quality: 2, discordPlayerCompatibility: false }));
-                        ytStream = strm.stream;
-                        streamType = strm.type;
+                        // let strm = (await playdl.stream(link, { quality: 2, discordPlayerCompatibility: false }));
+                        // ytStream = strm.stream;
+                        // streamType = strm.type;
                         // ----------------------------------PLAY-DL---------------------------------------
 
                         // ----------------------------------YT-DLP---------------------------------------
 
-                        // const ytdlp = new ytdlpWrap(ytdlpBinaryPath);
+                        const ytdlp = new ytdlpWrap(ytdlpBinaryPath);
         
-                        // let extension = ".webm"
-                        // ytStream = ytdlp.execStream([
-                        //     link,
-                        //     '-f',
-                        //     `bestaudio[ext=${extension.substring(1)}][acodec=opus]`,
-                        //     // '--limit-rate',
-                        //     // '50K'
-                        // ]);
-                        // .on('progress', (progress) =>
-                        //     console.log(
-                        //     progress.percent,
-                        //     progress.totalSize,
-                        //     progress.currentSpeed,
-                        //     progress.eta
-                        // )
-                        // )
-                        // .on('ytDlpEvent', (eventType, eventData) =>
-                        //     console.log(eventType, eventData)
-                        // )
-                        // .on('error', (error) => {
-                        //     console.error(error)
-                        // })
-                        // .on('close', () => {
-                        //     console.log('all done')
-                        // });
+                        let extension = ".webm"
+                        ytStream = ytdlp.execStream([
+                            link,
+                            '-f',
+                            `bestaudio[ext=${extension.substring(1)}][acodec=opus]`,
+                            // '--limit-rate',
+                            // '50K'
+                        ]);
+                        ytStream.on('progress', (progress) =>
+                            console.log(
+                            progress.percent,
+                            progress.totalSize,
+                            progress.currentSpeed,
+                            progress.eta
+                        )
+                        )
+                        .on('ytDlpEvent', (eventType, eventData) =>
+                            console.log(eventType, eventData)
+                        )
+                        .on('error', (error) => {
+                            console.error(error)
+                        })
+                        .on('close', () => {
+                            console.log('all done')
+                        });
 
-                        // let bufSize = 8096;
-                        // ytStream = ytStream.pipe(new ReReadable({length: bufSize})).rewind();
+                        let bufSize = 8096;
+                        ytStream = ytStream.pipe(new ReReadable({length: bufSize})).rewind();
                        
                         // ----------------------------------YT-DLP---------------------------------------
 
