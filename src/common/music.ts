@@ -323,15 +323,6 @@ async function playNextSong(guildId: string) : Promise<boolean> {
             let resource: AudioResource;
             let retryCount = 0;
 
-            // if (!fs.existsSync(ytdlpBinaryPath)) {
-            //     let binaryFolderPath = path.dirname(ytdlpBinaryPath);
-            //     fs.rmSync(binaryFolderPath, {force: true, recursive: true});
-            //     fs.mkdirSync(binaryFolderPath, {recursive: true});
-            //     await ytdlpWrap.downloadFromGithub(
-            //         ytdlpBinaryPath
-            //     );
-            // }
-
             if (!directStream) {
                 while (retryCount < maxYtdlRetries) {
                     try {
@@ -343,6 +334,15 @@ async function playNextSong(guildId: string) : Promise<boolean> {
                         // ----------------------------------PLAY-DL---------------------------------------
 
                         // ----------------------------------YT-DLP---------------------------------------
+
+                        if (!fs.existsSync(ytdlpBinaryPath)) {
+                            let binaryFolderPath = path.dirname(ytdlpBinaryPath);
+                            fs.rmSync(binaryFolderPath, {force: true, recursive: true});
+                            fs.mkdirSync(binaryFolderPath, {recursive: true});
+                            await ytdlpWrap.downloadFromGithub(
+                                ytdlpBinaryPath
+                            );
+                        }
 
                         const ytdlp = new ytdlpWrap(ytdlpBinaryPath);
         
