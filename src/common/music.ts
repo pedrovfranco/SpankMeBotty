@@ -637,8 +637,8 @@ export async function skipCurrentSong(guildId: string, count: number = 1): Promi
     guildData.audioPlayer?.pause(interpolateSilence);
     // guildData.currentStream.
 
-    // guildData.currentStream?.destroy();
-    // guildData.currentStream = undefined;
+    guildData.currentStream?.destroy();
+    guildData.currentStream = undefined;
 
     await playNextSong(guildId);
 
