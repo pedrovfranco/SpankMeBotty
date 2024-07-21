@@ -263,10 +263,11 @@ async function playNextSong(guildId: string): Promise<boolean> {
             guildData.playing = -1;
             return false;
         } else {
+            // If not playing anything go to the start of the queue
             if (guildData.playing === -1) {
                 guildData.playing = 0;
             }
-
+            // If hit the end of the queue
             if (guildData.playing >= guildData.queue.length) {
                 return false;
             }
@@ -278,11 +279,14 @@ async function playNextSong(guildId: string): Promise<boolean> {
             let connection = getVoiceConnection(guildData.guildId);
 
             if (!connection || connection.state.status === VoiceConnectionStatus.Destroyed) {
+                // From https://discordjs.guide/voice/voice-connections.html#cheat-sheet
+                // If you try to call joinVoiceChannel on another channel in the same guild in which there is already an active voice connection, the existing voice connection switches over to the new channel.
                 connection = joinVoiceChannel({
                     channelId: guildData.voiceChannelId,
                     guildId: guildData.guildId,
                     adapterCreator: guildData.guild.voiceAdapterCreator,
                 });
+                // Checks to see if a voice connection got disconnected because either the bot was kicked or it just switched channels
 
                 connection.on(VoiceConnectionStatus.Disconnected, async () => {
                     try {
@@ -291,8 +295,10 @@ async function playNextSong(guildId: string): Promise<boolean> {
                                 entersState(connection, VoiceConnectionStatus.Signalling, 5000),
                                 entersState(connection, VoiceConnectionStatus.Connecting, 5000),
                             ]);
+                            // Seems to be reconnecting to a new channel - ignore disconnect
                         }
                     } catch (error) {
+                        // Seems to be a real disconnect which SHOULDN'T be recovered from
                         destroyGuildConnection(guildId);
                     }
                 });
@@ -327,6 +333,13 @@ async function playNextSong(guildId: string): Promise<boolean> {
             if (!directStream) {
                 while (retryCount < maxYtdlRetries) {
                     try {
+                        // ----------------------------------PLAY-DL---------------------------------------
+                        // let strm = (await playdl.stream(link, { quality: 2, discordPlayerCompatibility: false }));
+                        // ytStream = strm.stream;
+                        // streamType = strm.type;
+                        // ----------------------------------PLAY-DL---------------------------------------
+
+                        // ----------------------------------YT-DLP---------------------------------------
                         if (!fs.existsSync(ytdlpBinaryPath)) {
                             let binaryFolderPath = path.dirname(ytdlpBinaryPath);
                             fs.rmSync(binaryFolderPath, { force: true, recursive: true });
@@ -341,6 +354,8 @@ async function playNextSong(guildId: string): Promise<boolean> {
                             link,
                             '-f',
                             `bestaudio[ext=${extension.substring(1)}][acodec=opus]`,
+                            // '--limit-rate',
+                            // '50K'
                         ]);
 
                         ytStream.on('progress', (progress) => console.log(progress.percent, progress.totalSize, progress.currentSpeed, progress.eta))
@@ -350,6 +365,7 @@ async function playNextSong(guildId: string): Promise<boolean> {
 
                         let bufSize = 8096;
                         ytStream = ytStream.pipe(new ReReadable({ length: bufSize })).rewind();
+                        // ----------------------------------YT-DLP---------------------------------------
                         break;
                     } catch (e: any) {
                         retryCount++;
