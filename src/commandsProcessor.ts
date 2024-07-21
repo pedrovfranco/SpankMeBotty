@@ -1,6 +1,7 @@
 import { Client, Collection, SlashCommandBuilder, ChatInputCommandInteraction, BaseInteraction, Message, AutocompleteInteraction } from 'discord.js';
 
 import { sendEmote } from './common/common.js';
+import { take } from './rateLimiter.js';
 
 export type CommandFile = {
 	data: SlashCommandBuilder, 
@@ -15,7 +16,6 @@ const flagExactEmoteMatch = true;
 // const alertCommandDeprecation = true;
 
 export function registerBot(client: Client<boolean>, commandsCollection: Collection<string, CommandFile>): void {
-
 	commands = commandsCollection;
 	discordClient = client;
 	client.on('interactionCreate', handleInteraction);
@@ -26,6 +26,15 @@ async function handleInteraction(interaction: BaseInteraction) {
 	if (interaction.member?.user == undefined || interaction.member?.user.bot || interaction.guild?.id == undefined || !interaction.guild.available) {
 		return;
 	}
+	const userId = interaction.member.user.id;
+    const rateLimitKey = `${userId}_interaction`;
+
+    if (take(rateLimitKey)) {
+        if (interaction.isRepliable()) {
+            await interaction.reply({ content: 'You are being rate limited. Please wait before using commands again.', ephemeral: true });
+        }
+        return;
+    }
 
 	if (interaction.isChatInputCommand()) {
 		console.log(`Received ChatInput interaction for command ${interaction.commandName} from guildId ${interaction.guildId} (${interaction.guild.name})`);
@@ -80,8 +89,16 @@ async function handleMessage(message: Message) {
 
 	// 	return;
 	// }
+	
 
 	if (flagExactEmoteMatch) {
+		const userId = message.author.id;
+		const rateLimitKey = `${userId}_message`;
+
+		if (take(rateLimitKey)) {
+			await message.reply('You are being rate limited. Please wait before sending more messages.');
+			return;
+		}
 		sendEmote(message, message.content, false); // If the message is not an emote name this function should fail gracefully
 		return;
 	}
