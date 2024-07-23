@@ -344,6 +344,7 @@ async function playNextSong(guildId: string): Promise<boolean> {
                             let binaryFolderPath = path.dirname(ytdlpBinaryPath);
                             fs.rmSync(binaryFolderPath, { force: true, recursive: true });
                             fs.mkdirSync(binaryFolderPath, { recursive: true });
+                            console.log("Downloading ytdlp binary...");
                             await ytdlpWrap.downloadFromGithub(ytdlpBinaryPath);
                         }
 
