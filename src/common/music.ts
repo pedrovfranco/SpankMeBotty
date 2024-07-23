@@ -19,6 +19,7 @@ import {rollDice} from './common';
 import GuildSettings from '../database/models/guildSettings';
 import { GetAuthFromDb } from '../database/playdlAuthScript';
 
+
 export class QueueItem {
     link: string;
     title: string;
@@ -53,6 +54,7 @@ export class GuildMusicData {
     soundboardVolume!: number;
     lastInteraction?: ChatInputCommandInteraction;
     guild?: Guild;
+    timeout?: NodeJS.Timeout;
 
     voiceConnection?: VoiceConnection;
 
@@ -247,11 +249,11 @@ async function handleMusicWorkerResult(interaction : ChatInputCommandInteraction
     }
 }
 
-async function playNextSong(guildId: string) : Promise<boolean> {
+async function playNextSong(guildId: string): Promise<boolean> {
     let guildData = addGuild(guildId);
     let interaction = guildData.lastInteraction;
 
-    if (interaction == null || interaction.channel == null || !(interaction.channel instanceof TextChannel)  || guildData.guild == null || guildData.voiceChannelId == null) {
+    if (!interaction || !interaction.channel || !(interaction.channel instanceof TextChannel) || !guildData.guild || !guildData.voiceChannelId) {
         console.error('No interaction to play next song, failing.');
         return false;
     }
@@ -260,14 +262,11 @@ async function playNextSong(guildId: string) : Promise<boolean> {
         if (guildData.queue.length === 0) {
             guildData.playing = -1;
             return false;
-        }
-        else {
-
+        } else {
             // If not playing anything go to the start of the queue
             if (guildData.playing === -1) {
                 guildData.playing = 0;
             }
-
             // If hit the end of the queue
             if (guildData.playing >= guildData.queue.length) {
                 return false;
@@ -279,43 +278,51 @@ async function playNextSong(guildId: string) : Promise<boolean> {
 
             let connection = getVoiceConnection(guildData.guildId);
 
-            if (connection == null || connection.state.status === VoiceConnectionStatus.Destroyed) {
+            if (!connection || connection.state.status === VoiceConnectionStatus.Destroyed) {
                 // From https://discordjs.guide/voice/voice-connections.html#cheat-sheet
                 // If you try to call joinVoiceChannel on another channel in the same guild in which there is already an active voice connection, the existing voice connection switches over to the new channel.
-                
-                let newConnection = joinVoiceChannel({
+                connection = joinVoiceChannel({
                     channelId: guildData.voiceChannelId,
                     guildId: guildData.guildId,
                     adapterCreator: guildData.guild.voiceAdapterCreator,
                 });
-                
-                connection = newConnection;
-
                 // Checks to see if a voice connection got disconnected because either the bot was kicked or it just switched channels
-                newConnection.on(VoiceConnectionStatus.Disconnected, async (/* oldState, newState */) => {
+
+                connection.on(VoiceConnectionStatus.Disconnected, async () => {
                     try {
-                        await Promise.race([
-                            entersState(newConnection, VoiceConnectionStatus.Signalling, 5000),
-                            entersState(newConnection, VoiceConnectionStatus.Connecting, 5000),
-                        ]);
-                        // Seems to be reconnecting to a new channel - ignore disconnect
+                        if (connection) {
+                            await Promise.race([
+                                entersState(connection, VoiceConnectionStatus.Signalling, 5000),
+                                entersState(connection, VoiceConnectionStatus.Connecting, 5000),
+                            ]);
+                            // Seems to be reconnecting to a new channel - ignore disconnect
+                        }
                     } catch (error) {
                         // Seems to be a real disconnect which SHOULDN'T be recovered from
                         destroyGuildConnection(guildId);
                     }
                 });
 
-                // applyKeepAliveHotfix(connection);
+                // Start the idle check loop
+                checkIdleStatusAndDisconnect(guildData.audioPlayer, guildId, connection);
             }
 
             guildData.voiceConnection = connection;
 
             let player = guildData.audioPlayer;
-            if (player == null) {
+            if (!player) {
                 player = createAudioPlayer();
                 guildData.connectionSubscription = connection.subscribe(player);
                 guildData.audioPlayer = player;
                 player.on('error', onAudioPlayerError.bind(guildData.guildId));
+
+                // Start the idle check loop when player becomes idle
+                player.on(AudioPlayerStatus.Playing, () => {
+                    checkIdleStatusAndDisconnect( player, guildId, connection);
+                });
+                player.on(AudioPlayerStatus.Idle, () => {
+                    checkIdleStatusAndDisconnect( player, guildId, connection);
+                });
             }
 
             let ytStream: Readable | undefined = undefined;
@@ -326,7 +333,6 @@ async function playNextSong(guildId: string) : Promise<boolean> {
             if (!directStream) {
                 while (retryCount < maxYtdlRetries) {
                     try {
-
                         // ----------------------------------PLAY-DL---------------------------------------
                         // let strm = (await playdl.stream(link, { quality: 2, discordPlayerCompatibility: false }));
                         // ytStream = strm.stream;
@@ -334,19 +340,16 @@ async function playNextSong(guildId: string) : Promise<boolean> {
                         // ----------------------------------PLAY-DL---------------------------------------
 
                         // ----------------------------------YT-DLP---------------------------------------
-
                         if (!fs.existsSync(ytdlpBinaryPath)) {
                             let binaryFolderPath = path.dirname(ytdlpBinaryPath);
-                            fs.rmSync(binaryFolderPath, {force: true, recursive: true});
-                            fs.mkdirSync(binaryFolderPath, {recursive: true});
-                            await ytdlpWrap.downloadFromGithub(
-                                ytdlpBinaryPath
-                            );
+                            fs.rmSync(binaryFolderPath, { force: true, recursive: true });
+                            fs.mkdirSync(binaryFolderPath, { recursive: true });
+                            await ytdlpWrap.downloadFromGithub(ytdlpBinaryPath);
                         }
 
                         const ytdlp = new ytdlpWrap(ytdlpBinaryPath);
-        
-                        let extension = ".webm"
+
+                        let extension = ".webm";
                         ytStream = ytdlp.execStream([
                             link,
                             '-f',
@@ -354,32 +357,17 @@ async function playNextSong(guildId: string) : Promise<boolean> {
                             // '--limit-rate',
                             // '50K'
                         ]);
-                        ytStream.on('progress', (progress) =>
-                            console.log(
-                            progress.percent,
-                            progress.totalSize,
-                            progress.currentSpeed,
-                            progress.eta
-                        )
-                        )
-                        .on('ytDlpEvent', (eventType, eventData) =>
-                            console.log(eventType, eventData)
-                        )
-                        .on('error', (error) => {
-                            console.error(error)
-                        })
-                        .on('close', () => {
-                            console.log('all done')
-                        });
+
+                        ytStream.on('progress', (progress) => console.log(progress.percent, progress.totalSize, progress.currentSpeed, progress.eta))
+                            .on('ytDlpEvent', (eventType, eventData) => console.log(eventType, eventData))
+                            .on('error', (error) => console.error(error))
+                            .on('close', () => console.log('all done'));
 
                         let bufSize = 8096;
-                        ytStream = ytStream.pipe(new ReReadable({length: bufSize})).rewind();
-                       
+                        ytStream = ytStream.pipe(new ReReadable({ length: bufSize })).rewind();
                         // ----------------------------------YT-DLP---------------------------------------
-
                         break;
-                    }
-                    catch (e: any) {
+                    } catch (e: any) {
                         retryCount++;
                         let deltaRetries = maxYtdlRetries - retryCount;
 
@@ -392,7 +380,7 @@ async function playNextSong(guildId: string) : Promise<boolean> {
                         }
 
                         ytStream?.destroy();
-                        console.log('Exception raised when using ytdl, remaning retries: ' + deltaRetries);
+                        console.log('Exception raised when using ytdl, remaining retries: ' + deltaRetries);
                         console.log(e);
                     }
                 }
@@ -406,12 +394,10 @@ async function playNextSong(guildId: string) : Promise<boolean> {
                 }
 
                 resource = createResource(ytStream, streamType, true, video.title);
-                // resource = createResource(ytStream, StreamType.Arbitrary, true, video.title);
-            }
-            else {
+            } else {
                 resource = createResource(link.substring(directStreamMacro.length), StreamType.Arbitrary, true, video.title);
             }
-            
+
             let oldStream = guildData.currentStream;
             guildData.currentStream = ytStream;
             guildData.audioPlayerResource = resource;
@@ -420,14 +406,10 @@ async function playNextSong(guildId: string) : Promise<boolean> {
             player.play(resource);
             try {
                 await entersState(player, AudioPlayerStatus.Playing, 5000);
-                // The player has entered the Playing state within 5 seconds
                 console.log('Playback has started');
 
                 player.once(AudioPlayerStatus.Idle, onSongEnd.bind(guildData.guildId));
             } catch (error) {
-                // The player has not entered the Playing state and either:
-                // 1) The 'error' event has been emitted and should be handled
-                // 2) 5 seconds have passed
                 console.error(error);
             }
 
@@ -435,16 +417,13 @@ async function playNextSong(guildId: string) : Promise<boolean> {
             console.log('Playing: ' + video.title);
 
             oldStream?.destroy();
-            
             return true;
         }
-    }
-    catch (exception: any) {
+    } catch (exception: any) {
         if (exception.message.startsWith('No video id found')) {
             interaction.channel.send("Link must be a video");
             console.log("Link must be a video");
-        }
-        else {
+        } else {
             interaction.channel.send("Failed to play, the link is probably broken");
             console.log("Failed to play, the link is probably broken");
             console.log(exception);
@@ -501,17 +480,23 @@ export async function playTTS(interaction: BaseInteraction, readStream: Readable
                     destroyGuildConnection(guildId);
                 }
             });
-
             // applyKeepAliveHotfix(connection);
+            
         }
-
+        
         guildData.voiceConnection = connection;
 
         let ttsPlayer = guildData.ttsAudioPlayer;
+        checkIdleStatusAndDisconnect(ttsPlayer, guildId, connection);
 
         if (ttsPlayer == undefined) {
             ttsPlayer = createAudioPlayer();
             guildData.ttsAudioPlayer = ttsPlayer;
+
+            // Start the idle check loop when player becomes idle
+            ttsPlayer.on(AudioPlayerStatus.Idle, () => {
+                checkIdleStatusAndDisconnect( ttsPlayer, guildId, connection);
+            });
         }
 
         let resource = await probeAndCreateResource(readStream, true, 'tts');
@@ -932,4 +917,51 @@ export function seek(guildId: string, newPosition: number): boolean {
 
     resource.playbackDuration = newPosition;
     return true;
+}
+
+function checkIdleStatusAndDisconnect(player: AudioPlayer | undefined, guildId: string, connection: VoiceConnection) {
+    const idleCheckInterval = 60000; // 1 minute
+
+    const guildData = guilds.get(guildId);
+    if (!guildData) return;
+
+    // Clear existing timeout if it exists
+    if (guildData.timeout) {
+        clearTimeout(guildData.timeout);
+    }
+
+    const checkIdle = () => {
+        console.log("1");
+        if (connection.state.status === VoiceConnectionStatus.Ready) {
+            console.log("2");
+            if (!player || player.state.status === AudioPlayerStatus.Idle) {
+                console.log("3");
+                disconnectFromVoiceChannel(guildId);
+                console.log("Disconnected due to inactivity");
+                if (guildData.timeout) {
+                    clearTimeout(guildData.timeout);
+                }
+                guildData.timeout = undefined;
+            } else {
+                console.log("4");
+                // Reset the idle check if the player is not idle
+                guildData.timeout = setTimeout(checkIdle, idleCheckInterval);
+            }
+        } else {
+            console.log("5");
+            // Reset the idle check if the connection is not ready
+            guildData.timeout = setTimeout(checkIdle, idleCheckInterval);
+        }
+    };
+
+    // Set the new timeout
+    guildData.timeout = setTimeout(checkIdle, idleCheckInterval);
+}
+
+function disconnectFromVoiceChannel(guildId: string) {
+    const connection = getVoiceConnection(guildId);
+    if (connection) {
+        connection.destroy();
+        console.log("Bot disconnected due to inactivity.");
+    }
 }
