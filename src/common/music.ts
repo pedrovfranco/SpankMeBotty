@@ -77,6 +77,7 @@ const pool = workerpool.pool(path.join(__dirname, 'music_worker.js'), {maxWorker
 const defaultMusicVolume = 0.2;
 const defaultSoundBoardVolume = defaultMusicVolume; // 0.2
 const interpolateSilence = true;
+const idleCheckInterval = 5 * 60 * 1000; // 5 minutes
 
 let guilds: Map<string, GuildMusicData> =  new Map<string, GuildMusicData>();
 
@@ -350,11 +351,15 @@ async function playNextSong(guildId: string): Promise<boolean> {
 
                         const ytdlp = new ytdlpWrap(ytdlpBinaryPath);
 
-                        let extension = ".webm";
+                        // let extension = ".webm";
+                        let extension = ".m4a";
+                        // let acodec = "opus"
+                        let acodec = "mp4a.40.5"
+
                         ytStream = ytdlp.execStream([
                             link,
                             '-f',
-                            `bestaudio[ext=${extension.substring(1)}][acodec=opus]`,
+                            `bestaudio[ext=${extension.substring(1)}][acodec=${acodec}]`,
                             // '--limit-rate',
                             // '50K'
                         ]);
@@ -921,7 +926,6 @@ export function seek(guildId: string, newPosition: number): boolean {
 }
 
 function checkIdleStatusAndDisconnect(player: AudioPlayer | undefined, guildId: string, connection: VoiceConnection) {
-    const idleCheckInterval = 60000; // 1 minute
 
     const guildData = guilds.get(guildId);
     if (!guildData) return;
@@ -932,11 +936,8 @@ function checkIdleStatusAndDisconnect(player: AudioPlayer | undefined, guildId: 
     }
 
     const checkIdle = () => {
-        console.log("1");
         if (connection.state.status === VoiceConnectionStatus.Ready) {
-            console.log("2");
             if (!player || player.state.status === AudioPlayerStatus.Idle) {
-                console.log("3");
                 disconnectFromVoiceChannel(guildId);
                 console.log("Disconnected due to inactivity");
                 if (guildData.timeout) {
@@ -944,7 +945,6 @@ function checkIdleStatusAndDisconnect(player: AudioPlayer | undefined, guildId: 
                 }
                 guildData.timeout = undefined;
             } else {
-                console.log("4");
                 // Reset the idle check if the player is not idle
                 guildData.timeout = setTimeout(checkIdle, idleCheckInterval);
             }
