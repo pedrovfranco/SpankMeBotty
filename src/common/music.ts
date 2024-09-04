@@ -938,7 +938,7 @@ function checkIdleStatusAndDisconnect(player: AudioPlayer | undefined, guildId: 
     const checkIdle = () => {
         if (connection.state.status === VoiceConnectionStatus.Ready) {
             if (!player || player.state.status === AudioPlayerStatus.Idle) {
-                disconnectFromVoiceChannel(guildId);
+                destroyGuildConnection(guildId);
                 console.log("Disconnected due to inactivity");
                 if (guildData.timeout) {
                     clearTimeout(guildData.timeout);
