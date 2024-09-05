@@ -958,11 +958,3 @@ function checkIdleStatusAndDisconnect(player: AudioPlayer | undefined, guildId: 
     // Set the new timeout
     guildData.timeout = setTimeout(checkIdle, idleCheckInterval);
 }
-
-function disconnectFromVoiceChannel(guildId: string) {
-    const connection = getVoiceConnection(guildId);
-    if (connection) {
-        connection.destroy();
-        console.log("Bot disconnected due to inactivity.");
-    }
-}
