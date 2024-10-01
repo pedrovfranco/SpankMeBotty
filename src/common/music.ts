@@ -77,7 +77,7 @@ const pool = workerpool.pool(path.join(__dirname, 'music_worker.js'), {maxWorker
 const defaultMusicVolume = 0.2;
 const defaultSoundBoardVolume = defaultMusicVolume; // 0.2
 const interpolateSilence = true;
-const idleCheckInterval = 5 * 60 * 1000; // 5 minutes
+const idleCheckInterval = 30 * 60 * 1000; // 30 minutes
 
 let guilds: Map<string, GuildMusicData> =  new Map<string, GuildMusicData>();
 
