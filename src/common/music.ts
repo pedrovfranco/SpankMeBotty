@@ -354,12 +354,17 @@ async function playNextSong(guildId: string): Promise<boolean> {
                         // let extension = ".webm";
                         let extension = ".m4a";
                         // let acodec = "opus"
-                        let acodec = "mp4a.40.5"
+                        let acodec = "mp4a.40.2"
+
+                        let formatStr = '';
+                        formatStr += `bestaudio`;
+                        formatStr += `[ext=${extension.substring(1)}]`;
+                        formatStr += `[acodec=${acodec}]`;
 
                         ytStream = ytdlp.execStream([
                             link,
                             '-f',
-                            `bestaudio[ext=${extension.substring(1)}][acodec=${acodec}]`,
+                            formatStr,
                             // '--limit-rate',
                             // '50K'
                         ]);
