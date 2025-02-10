@@ -19,7 +19,6 @@ import {rollDice} from './common';
 import GuildSettings from '../database/models/guildSettings';
 import { GetAuthFromDb } from '../database/playdlAuthScript';
 
-
 export class QueueItem {
     link: string;
     title: string;
@@ -29,18 +28,6 @@ export class QueueItem {
         this.link = link;
         this.title = title;
         this.lengthSeconds = lengthSeconds;
-    }
-}
-
-export class MusicWorkerResult {
-    songArr: QueueItem[];
-    playlistTitle?: string;
-    error?: string;
-
-    constructor(songArr: QueueItem[], playlistTitle?: string, error?: string) {
-        this.songArr = songArr;
-        this.playlistTitle = playlistTitle;
-        this.error = error;
     }
 }
 
@@ -67,7 +54,22 @@ export class GuildMusicData {
     ttsAudioPlayerResource?: AudioResource;
     ttsConnectionSubscription?: PlayerSubscription;
     ttsShouldPause?: boolean;
+
+    skippingFuncIntervalId?: NodeJS.Timeout;
 }
+
+export class MusicWorkerResult {
+    songArr: QueueItem[];
+    playlistTitle?: string;
+    error?: string;
+
+    constructor(songArr: QueueItem[], playlistTitle?: string, error?: string) {
+        this.songArr = songArr;
+        this.playlistTitle = playlistTitle;
+        this.error = error;
+    }
+}
+
 
 export const maxYtdlRetries = 3;
 export const DEBUG_WORKER = true;
@@ -78,6 +80,7 @@ const defaultMusicVolume = 0.2;
 const defaultSoundBoardVolume = defaultMusicVolume; // 0.2
 const interpolateSilence = true;
 const idleCheckInterval = 30 * 60 * 1000; // 30 minutes
+const skippingTaskInterval = 5 * 1000;
 
 let guilds: Map<string, GuildMusicData> =  new Map<string, GuildMusicData>();
 
@@ -414,6 +417,12 @@ async function playNextSong(guildId: string): Promise<boolean> {
             guildData.audioPlayerResource = resource;
             resource?.volume?.setVolume(guildData.volume);
 
+            if (guildData.skippingFuncIntervalId == null) {
+                guildData.skippingFuncIntervalId = setInterval(() => {
+                    skipIfNeeded(guildData);
+                }, skippingTaskInterval); // Runs every 5 seconds.
+            }
+
             player.play(resource);
             try {
                 await entersState(player, AudioPlayerStatus.Playing, 5000);
@@ -636,6 +645,8 @@ export async function skipCurrentSong(guildId: string, count: number = 1): Promi
     guildData.currentStream?.destroy();
     guildData.currentStream = undefined;
 
+    cancelSkippingTask(guildData);
+
     await playNextSong(guildId);
 
     return true;
@@ -828,6 +839,8 @@ export async function destroyGuildConnection(guildId: string): Promise<boolean> 
     guildData.ttsAudioPlayer?.stop();
     guildData.ttsConnectionSubscription?.unsubscribe();
 
+    cancelSkippingTask(guildData);
+
     guilds.delete(guildId);
 
     return true;
@@ -962,4 +975,31 @@ function checkIdleStatusAndDisconnect(player: AudioPlayer | undefined, guildId: 
 
     // Set the new timeout
     guildData.timeout = setTimeout(checkIdle, idleCheckInterval);
+}
+
+function skipIfNeeded(guildData: GuildMusicData) {
+    const threshold = 1.5; // 1.5 seconds
+    if (!guildData) 
+        return;
+
+    let currePos = guildData?.audioPlayerResource?.playbackDuration;
+    if (currePos == null)
+        return;
+
+    currePos /= 1000;
+
+    const songLength = guildData.queue[0].lengthSeconds;
+
+    if (guildData.playing != -1 && songLength - currePos <= threshold) {
+        console.log('Skipping current song automatically, it\'s probably stuck.');
+        skipCurrentSong(guildData.guildId);
+    }
+}
+
+function cancelSkippingTask(guildData: GuildMusicData) {
+    if (guildData?.skippingFuncIntervalId != null) {
+        clearInterval(guildData.skippingFuncIntervalId);
+        guildData.skippingFuncIntervalId = undefined;
+        console.log("Cancelled skipping task.");
+    }
 }

@@ -11,157 +11,165 @@ const maxYoutubeSearchBatchSize = 100;
 const utf8Macro = 'utf-8';
 
 export async function getSong(search_query: string): Promise<MusicWorkerResult | undefined> {
-
-    if (search_query.startsWith(directStreamMacro)) {
-        let splitLinks = search_query.replace(directStreamMacro, '').split(' ');
-        let songName = 'DirectStream';
-        let itemList = [];
-
-        for (const link of splitLinks)
-        {
-            const requestModule = link.startsWith('http://') ? http : https;
-            const req = requestModule.request(link, { method: 'GET' });
-            req.end();
-
-            const res = await new Promise<http.IncomingMessage>((resolve, reject) => {
-                req.on('response', resolve);
-                req.on('error', reject);
-            });
-            
-            // Extract filename from context disposition using regex
-            const contentDisposition = res.headers['content-disposition'] ?? '';
-            const filenamePattern = /filename\*[^;=\n]*=([^;\n]*)/i;
-            const filenameMatches = contentDisposition.match(filenamePattern);
-
-            if (!(filenameMatches && filenameMatches.length >= 2)) {
-                return;
-            }
-
-            // Remove UTF-8 macro inside the string
-            let filename = decodeURIComponent(filenameMatches[1].replace(/['"]/g, ''));
-            if (filename.toLowerCase().startsWith(utf8Macro)) {
-                filename = filename.substring(utf8Macro.length);
-            }
-
-            // Remove file extension if it exists
-            let extensionIndex = filename.lastIndexOf('.');
-            if (extensionIndex != -1) {
-                filename = filename.substring(0, extensionIndex);
-            }
-
-            itemList.push(new QueueItem(`${directStreamMacro}${link}`, filename, 0))
-        }
-
-        return new MusicWorkerResult(itemList, `${songName} playlist`);
-    }
-
-    await refreshCredentialsIfNecessary();
-
-    const validation = await validate(search_query);
-    let link;
-
-    if (validation === false)
-        return undefined;
-
-    if (validation === 'search') { // Not a link, search on youtube instead
-        let song = await searchTrackOnYoutube(search_query);
-
-        if (song == undefined) {
-            return undefined;
-        }
-
-        return new MusicWorkerResult([song]);
-    }
+ 
+    let validation: string | boolean | undefined = undefined;
+    try {
+        if (search_query.startsWith(directStreamMacro)) {
+            let splitLinks = search_query.replace(directStreamMacro, '').split(' ');
+            let songName = 'DirectStream';
+            let itemList = [];
     
-    if (validation === 'yt_video') {
-        link = search_query;
-          
-        let info: YouTubeVideo | undefined = undefined;
-
-        let retryCount = 0;
-        while (retryCount < maxYtdlRetries) {
-            try {
-                info = (await video_basic_info(link)).video_details;
-                break;
-            }
-            catch (e: any) {
-                retryCount++;
-                let deltaRetries = maxYtdlRetries - retryCount;
-
-                if (e.message.includes("Sign in to confirm your age")) {
-                    let errorMsg = "The video is age restricted, skipping.";
-                    console.log(errorMsg);
-                    return new MusicWorkerResult([], undefined, 'age');
+            for (const link of splitLinks)
+            {
+                const requestModule = link.startsWith('http://') ? http : https;
+                const req = requestModule.request(link, { method: 'GET' });
+                req.end();
+    
+                const res = await new Promise<http.IncomingMessage>((resolve, reject) => {
+                    req.on('response', resolve);
+                    req.on('error', reject);
+                });
+                
+                // Extract filename from context disposition using regex
+                const contentDisposition = res.headers['content-disposition'] ?? '';
+                const filenamePattern = /filename\*[^;=\n]*=([^;\n]*)/i;
+                const filenameMatches = contentDisposition.match(filenamePattern);
+    
+                if (!(filenameMatches && filenameMatches.length >= 2)) {
+                    return;
                 }
-
-                console.log('Exception raised when using ytdl, remaning retries: ' + deltaRetries);
-                console.log(e);
+    
+                // Remove UTF-8 macro inside the string
+                let filename = decodeURIComponent(filenameMatches[1].replace(/['"]/g, ''));
+                if (filename.toLowerCase().startsWith(utf8Macro)) {
+                    filename = filename.substring(utf8Macro.length);
+                }
+    
+                // Remove file extension if it exists
+                let extensionIndex = filename.lastIndexOf('.');
+                if (extensionIndex != -1) {
+                    filename = filename.substring(0, extensionIndex);
+                }
+    
+                itemList.push(new QueueItem(`${directStreamMacro}${link}`, filename, 0))
             }
+    
+            return new MusicWorkerResult(itemList, `${songName} playlist`);
         }
-
-        if (info == undefined || retryCount >= maxYtdlRetries) {
-            console.log('Failed to get info from this song, something went wrong.');
+    
+        await refreshCredentialsIfNecessary();
+    
+        validation = await validate(search_query);
+        let link;
+    
+        if (validation === false)
             return undefined;
-        }
-
-        return new MusicWorkerResult([new QueueItem(info.url, info.title ?? "", info.durationInSec)]);
-    }
-
-    if (validation === 'yt_playlist') {
-        try {
-            const playlist = await playlist_info(search_query, { incomplete : true });
-            const videos = await playlist.all_videos();
-            
-            if (videos.length > maxPlaylistSize) {
-                videos.splice(maxPlaylistSize);
+    
+        if (validation === 'search') { // Not a link, search on youtube instead
+            let song = await searchTrackOnYoutube(search_query);
+    
+            if (song == undefined) {
+                return undefined;
             }
-
-            return new MusicWorkerResult(videos.map(x=>new QueueItem(x.url, x.title ?? "", x.durationInSec)), playlist.title);
+    
+            return new MusicWorkerResult([song]);
         }
-        catch (err) {
-            console.log(err);
-            return undefined;
-        }
-    }
-
-    if (validation === 'sp_track') {
-
-        let spotifyObj = await spotify(search_query) as SpotifyTrack;
-        let song = await searchTrackOnYoutube(convertSpotifyTrackToYoutubeTrackName(spotifyObj));
         
-        if (song == undefined) {
-            return undefined;
+        if (validation === 'yt_video') {
+            link = search_query;
+              
+            let info: YouTubeVideo | undefined = undefined;
+    
+            let retryCount = 0;
+            while (retryCount < maxYtdlRetries) {
+                try {
+                    info = (await video_basic_info(link)).video_details;
+                    break;
+                }
+                catch (e: any) {
+                    retryCount++;
+                    let deltaRetries = maxYtdlRetries - retryCount;
+    
+                    if (e.message.includes("Sign in to confirm your age")) {
+                        let errorMsg = "The video is age restricted, skipping.";
+                        console.log(errorMsg);
+                        return new MusicWorkerResult([], undefined, 'age');
+                    }
+    
+                    console.log('Exception raised when using ytdl, remaning retries: ' + deltaRetries);
+                    console.log(e);
+                }
+            }
+    
+            if (info == undefined || retryCount >= maxYtdlRetries) {
+                console.log('Failed to get info from this song, something went wrong.');
+                return undefined;
+            }
+    
+            return new MusicWorkerResult([new QueueItem(info.url, info.title ?? "", info.durationInSec)]);
         }
-
-        return new MusicWorkerResult([song]);
+    
+        if (validation === 'yt_playlist') {
+            try {
+                const playlist = await playlist_info(search_query, { incomplete : true });
+                const videos = await playlist.all_videos();
+                
+                if (videos.length > maxPlaylistSize) {
+                    videos.splice(maxPlaylistSize);
+                }
+    
+                return new MusicWorkerResult(videos.map(x=>new QueueItem(x.url, x.title ?? "", x.durationInSec)), playlist.title);
+            }
+            catch (err) {
+                console.log(err);
+                return undefined;
+            }
+        }
+    
+        if (validation === 'sp_track') {
+    
+            let spotifyObj = await spotify(search_query) as SpotifyTrack;
+            let song = await searchTrackOnYoutube(convertSpotifyTrackToYoutubeTrackName(spotifyObj));
+            
+            if (song == undefined) {
+                return undefined;
+            }
+    
+            return new MusicWorkerResult([song]);
+        }
+    
+        if (validation === 'sp_album') {
+            const album = await spotify(search_query) as SpotifyAlbum;
+            const spotifyTracks = await album.all_tracks();
+            const trackNameArr = spotifyTracks.map(track => convertSpotifyTrackToYoutubeTrackName(track));
+            const youtubeTracks = await searchArrayOfTracksOnYoutube(trackNameArr);
+    
+            if (youtubeTracks == undefined) {
+                return undefined;
+            }
+    
+            return new MusicWorkerResult(youtubeTracks, album.name);
+    
+        }
+      
+        if (validation === 'sp_playlist') {
+            const playlist = await spotify(search_query) as SpotifyPlaylist;
+            const spotifyTracks = await playlist.all_tracks();
+            const trackNameArr = spotifyTracks.map(track => convertSpotifyTrackToYoutubeTrackName(track));
+            const youtubeTracks = await searchArrayOfTracksOnYoutube(trackNameArr);
+    
+            if (youtubeTracks == undefined) {
+                return undefined;
+            }
+    
+            return new MusicWorkerResult(youtubeTracks, playlist.name);
+        }
+    }
+    catch {
+        console.log(`Failed to search ${validation ?? 'undefined'} for the query ${search_query}`);
     }
 
-    if (validation === 'sp_album') {
-        const album = await spotify(search_query) as SpotifyAlbum;
-        const spotifyTracks = await album.all_tracks();
-        const trackNameArr = spotifyTracks.map(track => convertSpotifyTrackToYoutubeTrackName(track));
-        const youtubeTracks = await searchArrayOfTracksOnYoutube(trackNameArr);
-
-        if (youtubeTracks == undefined) {
-            return undefined;
-        }
-
-        return new MusicWorkerResult(youtubeTracks, album.name);
-
-    }
-  
-    if (validation === 'sp_playlist') {
-        const playlist = await spotify(search_query) as SpotifyPlaylist;
-        const spotifyTracks = await playlist.all_tracks();
-        const trackNameArr = spotifyTracks.map(track => convertSpotifyTrackToYoutubeTrackName(track));
-        const youtubeTracks = await searchArrayOfTracksOnYoutube(trackNameArr);
-
-        if (youtubeTracks == undefined) {
-            return undefined;
-        }
-
-        return new MusicWorkerResult(youtubeTracks, playlist.name);
-    }
+    return undefined;
 }
 
 
