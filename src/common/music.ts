@@ -989,9 +989,10 @@ function skipIfNeeded(guildData: GuildMusicData) {
     currePos /= 1000;
 
     const songLength = guildData.queue[0].lengthSeconds;
+    let remainingSeconds = songLength - currePos;
 
-    if (guildData.playing != -1 && songLength - currePos <= threshold) {
-        console.log('Skipping current song automatically, it\'s probably stuck.');
+    if (guildData.playing != -1 && remainingSeconds <= threshold) {
+        console.log(`Skipping current song automatically, it's probably stuck. Remaining = ${remainingSeconds}`);
         skipCurrentSong(guildData.guildId);
     }
 }
