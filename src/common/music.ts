@@ -354,10 +354,10 @@ async function playNextSong(guildId: string): Promise<boolean> {
 
                         const ytdlp = new ytdlpWrap(ytdlpBinaryPath);
 
-                        // let extension = ".webm";
-                        let extension = ".m4a";
-                        // let acodec = "opus"
-                        let acodec = "mp4a.40.2"
+                        let extension = ".webm";
+                        // let extension = ".m4a";
+                        let acodec = "opus"
+                        // let acodec = "mp4a.40.2"
 
                         let formatStr = '';
                         formatStr += `bestaudio`;
