@@ -2,7 +2,8 @@ import { SlashCommandBuilder, ChatInputCommandInteraction, User, ButtonBuilder, 
 import fs from 'fs';
 import path from 'path';
 import { http, https } from 'follow-redirects';
-import playdl from 'play-dl';
+// import playdl from 'play-dl';
+import { getYoutubeVideoId } from '../common/youtube';
 
 import { ensureYtdlp } from '../common/ytdlp';
 
@@ -462,7 +463,7 @@ async function handleRegister(interaction: ChatInputCommandInteraction, name: st
             const url = new URL(link);
             const protocol = url.protocol === 'https:' ? https : http;
     
-            if (await playdl.validate(link) == 'yt_video') {
+            if (getYoutubeVideoId(link) != undefined) {
                 
                 // ----------------------------------PLAY-DL---------------------------------------
                 
