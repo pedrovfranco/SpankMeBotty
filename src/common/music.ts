@@ -6,14 +6,9 @@ import { YouTubeStream } from 'play-dl';
 import { Readable } from "stream";
 import workerpool from 'workerpool';
 import path from 'path';
-import os from 'os';
-import fs from 'fs';
 import { ReReadable } from 'rereadable-stream';
 
-import ytdlpWrap, { YTDlpReadable } from 'yt-dlp-wrap';
-let ytdlpBinaryPath = './binaries/ytdlp';
-if (os.platform() == 'win32')
-    ytdlpBinaryPath += '.exe';
+import { ensureYtdlp } from './ytdlp';
 
 import {rollDice} from './common';
 import GuildSettings from '../database/models/guildSettings';
@@ -344,15 +339,7 @@ async function playNextSong(guildId: string): Promise<boolean> {
                         // ----------------------------------PLAY-DL---------------------------------------
 
                         // ----------------------------------YT-DLP---------------------------------------
-                        if (!fs.existsSync(ytdlpBinaryPath)) {
-                            let binaryFolderPath = path.dirname(ytdlpBinaryPath);
-                            fs.rmSync(binaryFolderPath, { force: true, recursive: true });
-                            fs.mkdirSync(binaryFolderPath, { recursive: true });
-                            console.log("Downloading ytdlp binary...");
-                            await ytdlpWrap.downloadFromGithub(ytdlpBinaryPath);
-                        }
-
-                        const ytdlp = new ytdlpWrap(ytdlpBinaryPath);
+                        const ytdlp = await ensureYtdlp();
 
                         let extension = ".webm";
                         // let extension = ".m4a";

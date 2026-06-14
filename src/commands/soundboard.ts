@@ -3,12 +3,8 @@ import fs from 'fs';
 import path from 'path';
 import { http, https } from 'follow-redirects';
 import playdl from 'play-dl';
-import os from 'os';
 
-import ytdlpWrap from 'yt-dlp-wrap';
-let ytdlpBinaryPath = './binaries/ytdlp';
-if (os.platform() == 'win32')
-    ytdlpBinaryPath += '.exe';
+import { ensureYtdlp } from '../common/ytdlp';
 
 import SoundBite from '../database/models/soundBite';
 import { playTTS, addGuild, changeSoundboardVolume } from '../common/music';
@@ -487,16 +483,7 @@ async function handleRegister(interaction: ChatInputCommandInteraction, name: st
 
                 // ----------------------------------YT-DLP---------------------------------------
 
-                if (!fs.existsSync(ytdlpBinaryPath)) {
-                    let binaryFolderPath = path.dirname(ytdlpBinaryPath);
-                    fs.rmSync(binaryFolderPath, {force: true, recursive: true});
-                    fs.mkdirSync(binaryFolderPath, {recursive: true});
-                    await ytdlpWrap.downloadFromGithub(
-                        ytdlpBinaryPath
-                    );
-                }
-
-                const ytdlp = new ytdlpWrap(ytdlpBinaryPath);
+                const ytdlp = await ensureYtdlp();
 
                 let extension = ".webm"
                 let stream = ytdlp.execStream([
