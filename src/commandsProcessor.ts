@@ -29,17 +29,17 @@ async function handleInteraction(interaction: BaseInteraction) {
 	const userId = interaction.member.user.id;
     const rateLimitKey = `${userId}_interaction`;
 
-    if (take(rateLimitKey)) {
-        if (interaction.isRepliable()) {
-            await interaction.reply({ content: 'You are being rate limited. Please wait before using commands again.', ephemeral: true });
-        }
-        return;
-    }
-
 	if (interaction.isChatInputCommand()) {
 		console.log(`Received ChatInput interaction for command ${interaction.commandName} from guildId ${interaction.guildId} (${interaction.guild.name})`);
 		const command = commands.get(interaction.commandName);
 		
+		if (take(rateLimitKey)) {
+			if (interaction.isRepliable()) {
+				await interaction.reply({ content: 'You are being rate limited. Please wait before using commands again.', ephemeral: true });
+			}
+			return;
+		}
+	
 		if (command == undefined) {
 			console.error('Unable to load file for the specified command');
 			return;

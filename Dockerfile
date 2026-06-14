@@ -1,4 +1,4 @@
-FROM node:20.6.1-buster-slim
+FROM node:24-bullseye-slim
 # FROM node:14-alpine
 
 # Install OS deps
@@ -60,17 +60,21 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 COPY tsconfig*.json ./
 
-RUN npm ci --development
+# # RUN npm ci
+# RUN npm install
 
 # Add your source files
 COPY . .
+
+# RUN rm -rf node_modules
+# RUN npm ci --omit=dev
+RUN npm install
+
 
 # Build Typescript
 RUN npm run clean
 RUN npm run build
 
-# RUN rm -rf node_modules
-RUN npm ci --omit=dev
 
 # CMD ["dumb-init", "npm", "start"]
 # CMD ["npm", "start"]

@@ -2,7 +2,6 @@ import { SlashCommandBuilder, ChatInputCommandInteraction, User, ButtonBuilder, 
 import fs from 'fs';
 import path from 'path';
 import { http, https } from 'follow-redirects';
-import ffmpeg from 'fluent-ffmpeg';
 import playdl from 'play-dl';
 import os from 'os';
 
@@ -411,21 +410,31 @@ async function downloadAndNormaliseAudioFile(soundBiteName: string, extension: s
         
         fs.writeFileSync(filePath, data, {encoding: 'binary'});
 
-        ffmpeg()
-            .input(filePath)
-            // .outputOptions('-c copy')
-            .audioFilters(`loudnorm=I=${ffmpegLoudnessUnits}:LRA=7:TP=-2:print_format=json`)
-            .output(normFilePath)
-            .on('end', async () => {
+        const ffmpegProc = spawn('ffmpeg', [
+            '-y',
+            '-i', filePath,
+            '-af', `loudnorm=I=${ffmpegLoudnessUnits}:LRA=7:TP=-2:print_format=json`,
+            normFilePath,
+        ]);
+
+        let stderr = '';
+        ffmpegProc.stderr.on('data', (chunk) => { stderr += chunk.toString(); });
+
+        ffmpegProc.on('error', (err) => {
+            reject(err);
+        });
+
+        ffmpegProc.on('close', (code) => {
+            if (code === 0) {
                 console.log('Successfully normalized audio.');
                 fs.unlinkSync(filePath);
                 fs.renameSync(normFilePath, filePath);
                 resolve();
-            })
-            .on('error', async (err) => {
-                reject(err);
-            })
-            .run();
+            }
+            else {
+                reject(new Error(`ffmpeg exited with code ${code}: ${stderr}`));
+            }
+        });
     });
 }
 
@@ -611,29 +620,54 @@ async function WriteStreamToFile(interaction: ChatInputCommandInteraction, guild
             return;
         }
 
-        let inputOptions = [];
+        let inputOptions: string[] = [];
 
         if (startTime != null) {
-            inputOptions.push(`-ss ${ffmpegStartTime.toTotalSeconds()}`);
+            inputOptions.push('-ss', `${ffmpegStartTime.toTotalSeconds()}`);
         }
 
         if (endTime != null) {
-            inputOptions.push(`-to ${ffmpegEndTime.toTotalSeconds()}`);
+            inputOptions.push('-to', `${ffmpegEndTime.toTotalSeconds()}`);
         }
 
-        let command = ffmpeg()
-        .input(rereadable.rewind())
-        .inputOptions(inputOptions);
+        // Input options (-ss/-to) must precede -i. -c copy stays disabled due to
+        // inaccuracies when seeking. See https://trac.ffmpeg.org/wiki/Seeking#Seekingwhiledoingacodeccopy
+        let ffmpegArgs = [...inputOptions, '-i', 'pipe:0'];
 
         if (volumeScale != null) {
-            command = command.audioFilters(`volume=${volumeScale}`);
+            ffmpegArgs.push('-af', `volume=${volumeScale}`);
         }
 
-        command
-        .outputOptions(['-map', 'a:0'])
-        .output(filePath)
-        // .outputOptions('-c copy') // Disabled due to inaccuracies when using timestamps and -c copy. See https://trac.ffmpeg.org/wiki/Seeking#Seekingwhiledoingacodeccopy
-        .on('end', async () => {
+        ffmpegArgs.push('-map', 'a:0', '-y', filePath);
+
+        const ffmpegProc = spawn('ffmpeg', ffmpegArgs);
+
+        // ffmpeg stops reading stdin early when -to is set, which closes the pipe
+        // and would otherwise surface as an unhandled EPIPE error.
+        ffmpegProc.stdin.on('error', () => {});
+        rereadable.rewind().pipe(ffmpegProc.stdin);
+
+        let ffmpegStderr = '';
+        ffmpegProc.stderr.on('data', (chunk) => { ffmpegStderr += chunk.toString(); });
+
+        ffmpegProc.on('error', async (err) => {
+            let errMsg = 'Error during conversion';
+            console.log(errMsg, err);
+            await interaction.editReply(errMsg);
+            if (fs.existsSync(filePath))
+                fs.unlinkSync(filePath);
+        });
+
+        ffmpegProc.on('close', async (code) => {
+            if (code !== 0) {
+                let errMsg = 'Error during conversion';
+                console.log(errMsg, ffmpegStderr);
+                await interaction.editReply(errMsg);
+                if (fs.existsSync(filePath))
+                    fs.unlinkSync(filePath);
+                return;
+            }
+
             // console.log('Conversion completed successfully');
             console.log(`Took ${performance.now()-start} ms.`);
             let buffer = fs.readFileSync(filePath);
@@ -675,16 +709,7 @@ async function WriteStreamToFile(interaction: ChatInputCommandInteraction, guild
                 interaction.editReply(errorMsg);
             });
 
-        })
-        .on('error', async (err) => {
-            let errMsg = 'Error during conversion';
-            console.log(errMsg, err);
-            await interaction.editReply(errMsg);
-            if (fs.existsSync(filePath))
-                fs.unlinkSync(filePath);
-            return;
-        })
-        .run();
+        });
     });
 }
 

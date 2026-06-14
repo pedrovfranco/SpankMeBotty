@@ -374,7 +374,7 @@ async function playNextSong(guildId: string): Promise<boolean> {
 
                         ytStream.on('progress', (progress) => console.log(progress.percent, progress.totalSize, progress.currentSpeed, progress.eta))
                             .on('ytDlpEvent', (eventType, eventData) => console.log(eventType, eventData))
-                            .on('error', (error) => console.error(error))
+                            .on('error', (error) => {console.log("ffmpeg error");console.error(error);})
                             .on('close', () => console.log('all done'));
 
                         let bufSize = 8096;

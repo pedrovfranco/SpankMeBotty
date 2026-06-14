@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, Collection, Guild } from 'discord.js';
+import { Client, GatewayIntentBits, Collection, Guild, Events } from 'discord.js';
 import { generateDependencyReport } from '@discordjs/voice';
 import fs from 'fs';
 import path from 'path';
@@ -14,7 +14,7 @@ import { register } from './deploy-commands';
 
 function fetchEnvVariables()
 {
-	if (require('dotenv').config().error) {
+	if (require('dotenv').config({ quiet: true }).error) {
 		console.error("Failed to load .env file!");
 	}
 	
@@ -46,7 +46,7 @@ function startClient() {
 		]
 	});
 
-	client.once('ready', () => {
+	client.once(Events.ClientReady, () => {
 		console.log('Ready!');
 	});
 
