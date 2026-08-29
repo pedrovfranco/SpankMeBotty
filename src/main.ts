@@ -7,10 +7,10 @@ fetchEnvVariables();
 
 import * as mongo from './database/mongo';
 import GuildSettings from './database/models/guildSettings';
-import { changeVolume, changeSoundboardVolume, initialize } from './common/music';
+import { changeVolume, changeSoundboardVolume } from './common/music';
 import { registerBot, CommandFile } from './commandsProcessor';
 import { register } from './deploy-commands';
-import { ensureYtdlp } from './common/ytdlp';
+import { initializeYtdlp } from './common/ytdlp';
 
 
 function fetchEnvVariables()
@@ -131,10 +131,8 @@ async function main() {
 
 	register();
 
-	initialize();
-
 	// Make sure yt-dlp is present and up to date on boot, without blocking startup.
-	ensureYtdlp().catch(err => console.error('Failed to prepare yt-dlp on startup:', err));
+	initializeYtdlp().catch(err => console.error('Failed to prepare yt-dlp on startup:', err));
 }
 
 main();

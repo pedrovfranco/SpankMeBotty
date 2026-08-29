@@ -1,16 +1,16 @@
 import workerpool from 'workerpool';
-// play-dl is kept only for link classification (validate) and Spotify, which
-// yt-search does not support. The YouTube search/video/playlist features below
-// now use yt-search instead.
-import { validate, spotify, SpotifyPlaylist, SpotifyAlbum, SpotifyTrack } from 'play-dl';
-// import { video_basic_info, playlist_info, search, YouTubeVideo } from 'play-dl';
-import yts from 'yt-search';
+// play-dl has been discontinued. Link classification (validate) is ported into
+// this repo (see ./urlValidation) and Spotify metadata now comes from a direct
+// Spotify Web API client (see ./spotify); yt-dlp does the YouTube search, video
+// and playlist work below.
 import { performance } from 'perf_hooks';
 import http from 'http';
 import https from 'https';
 
-import { refreshCredentialsIfNecessary, maxYtdlRetries, QueueItem, MusicWorkerResult, DEBUG_WORKER, directStreamMacro } from './music';
-import { getYoutubeVideoId, getYoutubePlaylistId } from './youtube';
+import { maxYtdlRetries, QueueItem, MusicWorkerResult, DEBUG_WORKER, directStreamMacro } from './music';
+import { getVideoInfo, getPlaylistInfo, searchVideos } from './ytdlp';
+import { validate } from './urlValidation';
+import { getTrack, getCollection, SpotifyTrack } from './spotify';
 
 const maxPlaylistSize = 1000;
 const maxYoutubeSearchBatchSize = 100;
@@ -63,9 +63,7 @@ export async function getSong(search_query: string): Promise<MusicWorkerResult |
             return new MusicWorkerResult(itemList, `${songName} playlist`);
         }
     
-        await refreshCredentialsIfNecessary();
-    
-        validation = await validate(search_query);
+        validation = validate(search_query);
         let link;
     
         if (validation === false)
@@ -116,30 +114,24 @@ export async function getSong(search_query: string): Promise<MusicWorkerResult |
             // return new MusicWorkerResult([new QueueItem(info.url, info.title ?? "", info.durationInSec)]);
             // ----------------------------------PLAY-DL---------------------------------------
 
-            // ----------------------------------YT-SEARCH-------------------------------------
-            let videoId = getYoutubeVideoId(link);
-            if (videoId == undefined) {
-                console.log('Failed to extract a video id from the link.');
-                return undefined;
-            }
-
+            // ----------------------------------YT-DLP---------------------------------------
             let retryCount = 0;
             while (retryCount < maxYtdlRetries) {
                 try {
-                    const info = await yts({ videoId: videoId });
-                    return new MusicWorkerResult([new QueueItem(info.url, info.title ?? "", info.seconds)]);
+                    const info = await getVideoInfo(link);
+                    return new MusicWorkerResult([new QueueItem(info.url, info.title, info.durationSeconds)]);
                 }
                 catch (e: any) {
                     retryCount++;
                     let deltaRetries = maxYtdlRetries - retryCount;
-                    console.log('Exception raised when using yt-search, remaining retries: ' + deltaRetries);
+                    console.log('Exception raised when using yt-dlp, remaining retries: ' + deltaRetries);
                     console.log(e);
                 }
             }
 
             console.log('Failed to get info from this song, something went wrong.');
             return undefined;
-            // ----------------------------------YT-SEARCH-------------------------------------
+            // ----------------------------------YT-DLP---------------------------------------
         }
     
         if (validation === 'yt_playlist') {
@@ -155,24 +147,16 @@ export async function getSong(search_query: string): Promise<MusicWorkerResult |
                 // return new MusicWorkerResult(videos.map(x=>new QueueItem(x.url, x.title ?? "", x.durationInSec)), playlist.title);
                 // ----------------------------------PLAY-DL---------------------------------------
 
-                // ----------------------------------YT-SEARCH-------------------------------------
-                let listId = getYoutubePlaylistId(search_query);
-                if (listId == undefined) {
-                    console.log('Failed to extract a playlist id from the link.');
-                    return undefined;
-                }
-
-                const playlist = await yts({ listId: listId });
+                // ----------------------------------YT-DLP---------------------------------------
+                const playlist = await getPlaylistInfo(search_query);
                 let videos = playlist.videos;
 
                 if (videos.length > maxPlaylistSize) {
                     videos.splice(maxPlaylistSize);
                 }
 
-                // Playlist items expose videoId + duration but not a ready-made url or
-                // durationInSec, so build the watch url and read seconds from the duration.
-                return new MusicWorkerResult(videos.map(x => new QueueItem('https://www.youtube.com/watch?v=' + x.videoId, x.title ?? "", x.duration?.seconds ?? 0)), playlist.title);
-                // ----------------------------------YT-SEARCH-------------------------------------
+                return new MusicWorkerResult(videos.map(x => new QueueItem(x.url, x.title, x.durationSeconds)), playlist.title);
+                // ----------------------------------YT-DLP---------------------------------------
             }
             catch (err) {
                 console.log(err);
@@ -181,46 +165,45 @@ export async function getSong(search_query: string): Promise<MusicWorkerResult |
         }
     
         if (validation === 'sp_track') {
-    
-            let spotifyObj = await spotify(search_query) as SpotifyTrack;
+
+            let spotifyObj = await getTrack(search_query);
             let song = await searchTrackOnYoutube(convertSpotifyTrackToYoutubeTrackName(spotifyObj));
-            
+
             if (song == undefined) {
                 return undefined;
             }
-    
+
             return new MusicWorkerResult([song]);
         }
-    
+
         if (validation === 'sp_album') {
-            const album = await spotify(search_query) as SpotifyAlbum;
-            const spotifyTracks = await album.all_tracks();
-            const trackNameArr = spotifyTracks.map(track => convertSpotifyTrackToYoutubeTrackName(track));
+            const album = await getCollection(search_query);
+            const trackNameArr = album.tracks.map(track => convertSpotifyTrackToYoutubeTrackName(track));
             const youtubeTracks = await searchArrayOfTracksOnYoutube(trackNameArr);
-    
+
             if (youtubeTracks == undefined) {
                 return undefined;
             }
-    
+
             return new MusicWorkerResult(youtubeTracks, album.name);
-    
+
         }
-      
+
         if (validation === 'sp_playlist') {
-            const playlist = await spotify(search_query) as SpotifyPlaylist;
-            const spotifyTracks = await playlist.all_tracks();
-            const trackNameArr = spotifyTracks.map(track => convertSpotifyTrackToYoutubeTrackName(track));
+            const playlist = await getCollection(search_query);
+            const trackNameArr = playlist.tracks.map(track => convertSpotifyTrackToYoutubeTrackName(track));
             const youtubeTracks = await searchArrayOfTracksOnYoutube(trackNameArr);
-    
+
             if (youtubeTracks == undefined) {
                 return undefined;
             }
-    
+
             return new MusicWorkerResult(youtubeTracks, playlist.name);
         }
     }
-    catch {
-        console.log(`Failed to search ${validation ?? 'undefined'} for the query ${search_query}`);
+    catch (err) {
+        console.error(`Failed to search ${validation ?? 'undefined'} for the query ${search_query}`);
+        console.error(err);
     }
 
     return undefined;
@@ -228,8 +211,8 @@ export async function getSong(search_query: string): Promise<MusicWorkerResult |
 
 
 function convertSpotifyTrackToYoutubeTrackName(track: SpotifyTrack): string {
-    // Concatenate all artist names and adds the track name at the end
-    return track.artists.map(elem => elem.name).join(' ') + ' - ' + track.name;
+    // spotify-url-info already joins the artist names; append the track title.
+    return track.artist + ' - ' + track.name;
 }
 
 async function searchTrackOnYoutube(trackName: string): Promise<QueueItem | undefined> {
@@ -246,11 +229,10 @@ async function searchTrackOnYoutube(trackName: string): Promise<QueueItem | unde
         // return new QueueItem(firstResult.url, firstResult.title ?? "", firstResult.durationInSec);
         // ----------------------------------PLAY-DL---------------------------------------
 
-        // ----------------------------------YT-SEARCH-------------------------------------
-        // yt-search performs a generic video search by default (no category filter),
-        // which is the equivalent of play-dl's "genericvideo" youtube source.
-        const result = await yts({ query: trackName, hl: 'pt', gl: 'PT' });
-        const videos = result.videos;
+        // ----------------------------------YT-DLP---------------------------------------
+        // yt-dlp's ytsearch performs a generic video search, the equivalent of
+        // play-dl's "genericvideo" youtube source. Only the top hit is needed.
+        const videos = await searchVideos(trackName, 1);
 
         if (videos.length === 0) {
             return undefined;
@@ -258,8 +240,8 @@ async function searchTrackOnYoutube(trackName: string): Promise<QueueItem | unde
 
         const firstResult = videos[0];
 
-        return new QueueItem(firstResult.url, firstResult.title ?? "", firstResult.seconds);
-        // ----------------------------------YT-SEARCH-------------------------------------
+        return new QueueItem(firstResult.url, firstResult.title, firstResult.durationSeconds);
+        // ----------------------------------YT-DLP---------------------------------------
     }
     catch (err) {
         console.log(err);

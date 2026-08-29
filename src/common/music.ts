@@ -1,18 +1,15 @@
 import { createAudioPlayer, entersState, VoiceConnectionStatus, joinVoiceChannel, demuxProbe, createAudioResource, AudioPlayerStatus, getVoiceConnection, VoiceConnection, AudioPlayer, StreamType, AudioResource, PlayerSubscription, VoiceConnectionState, AudioPlayerError } from '@discordjs/voice';
 import { ChannelType, ChatInputCommandInteraction, GuildMember, Guild, TextChannel, BaseInteraction } from 'discord.js';
 
-import playdl from 'play-dl';
-import { YouTubeStream } from 'play-dl';
 import { Readable } from "stream";
 import workerpool from 'workerpool';
 import path from 'path';
 import { ReReadable } from 'rereadable-stream';
 
-import { ensureYtdlp } from './ytdlp';
+import { getYtdlp, getYoutubeArgs } from './ytdlp';
 
 import {rollDice} from './common';
 import GuildSettings from '../database/models/guildSettings';
-import { GetAuthFromDb } from '../database/playdlAuthScript';
 
 export class QueueItem {
     link: string;
@@ -78,48 +75,6 @@ const idleCheckInterval = 30 * 60 * 1000; // 30 minutes
 const skippingTaskInterval = 5 * 1000;
 
 let guilds: Map<string, GuildMusicData> =  new Map<string, GuildMusicData>();
-
-let initialized = false;
-
-
-export async function initialize() {
-	if (!initialized) {
-        let auth = await GetAuthFromDb();
-
-        if (auth == undefined) {
-            return false;
-        }
-
-        let spotifyauth: {client_id: string; client_secret: string; market: string; refresh_token: string} = JSON.parse(auth.spotifyAuth);
-        let youtubeAuth: {cookie: {}} = JSON.parse(auth.youtubeAuth);
-        await playdl.setToken({
-             spotify: {
-                client_id: spotifyauth.client_id,
-                client_secret: spotifyauth.client_secret,
-                market: spotifyauth.market,
-                refresh_token: spotifyauth.refresh_token
-        }});
-
-        await playdl.setToken({
-        youtube: {
-            cookie: JSON.stringify(youtubeAuth.cookie)
-        }});
-
-        initialized = true;
-    }
-}
-
-export async function refreshCredentialsIfNecessary() {
-    if (playdl.is_expired()) {
-        let res = await playdl.refreshToken();
-        if (!res) {
-            console.log('Failed to refresh playdl token');
-        }
-        else {
-            console.log('Refreshed playdl token');
-        }
-    }
-}
 
 
 // Saves the guild information object to the guilds array.
@@ -339,7 +294,7 @@ async function playNextSong(guildId: string): Promise<boolean> {
                         // ----------------------------------PLAY-DL---------------------------------------
 
                         // ----------------------------------YT-DLP---------------------------------------
-                        const ytdlp = await ensureYtdlp();
+                        const ytdlp = getYtdlp();
 
                         let extension = ".webm";
                         // let extension = ".m4a";
@@ -355,6 +310,7 @@ async function playNextSong(guildId: string): Promise<boolean> {
                             link,
                             '-f',
                             formatStr,
+                            ...getYoutubeArgs(),
                             // '--limit-rate',
                             // '50K'
                         ]);

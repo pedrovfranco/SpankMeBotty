@@ -42,12 +42,12 @@ export async function register() {
 
 	if (process.env.NODE_ENV === 'development') {
 		rest.put(Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID), { body: commamdJsonArr })
-		.then(() => console.log('Successfully registered guild application commands.'))
+		.then(() => console.log('Successfully registered guild application commands to discord API.'))
 		.catch(console.error);
 	}
 	else if (process.env.NODE_ENV === 'production') {
 		rest.put(Routes.applicationCommands(process.env.CLIENT_ID), { body: commamdJsonArr })
-		.then(() => console.log('Successfully registered global application commands.'))
+		.then(() => console.log('Successfully registered global application commands to discord API.'))
 		.catch(console.error);
 	}
 }

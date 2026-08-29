@@ -1,7 +1,5 @@
-// Small helpers to extract YouTube ids from links.
-//
-// play-dl used to both classify links (validate) and fetch their data. yt-search
-// instead expects an explicit videoId/listId, so we parse them out of the url here.
+// Small helpers to extract YouTube ids from links, used to recognise whether a
+// link points at a YouTube video before handing it off for playback.
 
 // Returns the YouTube video id for a watch/youtu.be/shorts/embed link, or undefined
 // if the link isn't a recognisable YouTube video url.

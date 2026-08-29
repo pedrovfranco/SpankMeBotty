@@ -35,12 +35,11 @@
     "image-type": "4.1.0",
     "limiter": "^3.0.0",
     "mongoose": "^7.4.4",
-    "play-dl": "https://github.com/pedrovfranco/play-dl.git",
     "rereadable-stream": "^1.4.14",
     "sodium-native": "^4.1.1",
+    "spotify-url-info": "^3.3.1",
     "workerpool": "^10.0.2",
     "yt-dlp-wrap": "^2.3.12",
-    "yt-search": "^2.13.1",
     "ytdl-core": "^4.11.5"
   },
   "devDependencies": {

@@ -7,5 +7,10 @@ services:
     env_file: .env
     environment:
       - NODE_ENV=${NODE_ENV:-development}
+    volumes:
+      # YouTube auth cookies, kept out of the image (.dockerignore) and mounted at
+      # runtime. Writable on purpose: yt-dlp refreshes rotating cookies back to the
+      # file, which extends how long the session stays valid.
+      - ./cookies.txt:/usr/src/app/cookies.txt
     # image: gcr.io/spank-me-botty/spank-me-botty
     restart: on-failure:5

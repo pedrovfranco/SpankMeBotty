@@ -5,7 +5,7 @@ import { http, https } from 'follow-redirects';
 // import playdl from 'play-dl';
 import { getYoutubeVideoId } from '../common/youtube';
 
-import { ensureYtdlp } from '../common/ytdlp';
+import { getYtdlp } from '../common/ytdlp';
 
 import SoundBite from '../database/models/soundBite';
 import { playTTS, addGuild, changeSoundboardVolume } from '../common/music';
@@ -484,7 +484,7 @@ async function handleRegister(interaction: ChatInputCommandInteraction, name: st
 
                 // ----------------------------------YT-DLP---------------------------------------
 
-                const ytdlp = await ensureYtdlp();
+                const ytdlp = getYtdlp();
 
                 let extension = ".webm"
                 let stream = ytdlp.execStream([

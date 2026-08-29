@@ -267,3 +267,6 @@ emotes
 music_files
 .data
 binaries
+
+# yt-dlp YouTube auth cookies (secret; export your own — see CLAUDE.md)
+cookies.txt
